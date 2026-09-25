@@ -1,0 +1,6 @@
+{
+  "name": "Student Management System",
+  "description": "Comprehensive student management system for managing student records, course enrollments, attendance tracking, grades, and academic analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
