@@ -8,7 +8,7 @@ This guide explains how to build, run, and test the production-ready Docker cont
 
 ### 1. Build the Docker Image
 ```bash
-docker build -t sms-frontend:latest .
+docker build -t sms-frontend:latest ./frontend
 ```
 
 ### 2. Run the Container
@@ -49,6 +49,10 @@ To stop:
 ```bash
 docker compose down
 ```
+
+The repository is organized into `frontend/` and `backend/` directories.
+The Compose file is at the project root and builds the frontend from
+`./frontend`.
 
 ---
 
