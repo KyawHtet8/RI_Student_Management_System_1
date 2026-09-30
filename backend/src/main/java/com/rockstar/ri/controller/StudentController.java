@@ -16,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*") // Frontend မှ လာခေါ်ခွင့်ပြုခြင်း
 public class StudentController {
 
     private final StudentService service;
@@ -48,7 +47,7 @@ public class StudentController {
     // URL: POST http://localhost:8080/api/v1/students
     // =========================================================================
     @PostMapping
-    public ResponseEntity<Student> createStudent(@RequestBody Student student) {
+    public ResponseEntity<Student> createStudent(@Valid @RequestBody Student student) {
         log.info("REST request to register new student: {} {}", student.getFirstName(), student.getLastName());
         Student createdStudent = service.createStudent(student);
         // REST Best Practice: Data အသစ်ဖန်တီးပြီးပါက 201 CREATED status ပြန်ရပါသည်

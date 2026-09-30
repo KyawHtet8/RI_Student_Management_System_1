@@ -24,6 +24,8 @@ public interface StudentRepository extends JpaRepository<Student, String> {
     // ၄။ Email တူ/မတူ စစ်ဆေးခြင်း (Duplicate Email Check)
     boolean existsByEmail(String email);
 
+    boolean existsByEmailAndIdNot(String email, String id);
+
     // ၅။ နာမည် သို့မဟုတ် ကျောင်းသား ID ဖြင့် Search ရှာဖွေခြင်း
     @Query("SELECT s FROM Student s WHERE " +
            "LOWER(s.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

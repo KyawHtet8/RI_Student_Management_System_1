@@ -33,6 +33,11 @@ public class AttendanceService {
     private final EnrollmentRepository enrollmentRepository;
 
     @Transactional(readOnly = true)
+    public List<AttendanceRecord> getAllAttendance() {
+        return attendanceRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
     public List<AttendanceRecord> getAttendance(String courseIdentifier, String date) {
         Course course = resolveCourse(courseIdentifier);
         validateDate(date);

@@ -27,9 +27,9 @@ interface StudentDetailModalProps {
   onClose: () => void;
   onEdit: (student: Student) => void;
   onUpdateGrade: (enrollmentId: string, newGrade: LetterGrade) => void;
-  onEnrollInCourse: (studentId: string, courseId: string) => void;
+  onEnrollCourse: (courseId: string) => void;
   onDropCourse: (enrollmentId: string) => void;
-  onAddNote: (studentId: string, noteText: string) => void;
+  onAddNote: (noteText: string) => void;
 }
 
 export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
@@ -40,7 +40,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   onClose,
   onEdit,
   onUpdateGrade,
-  onEnrollInCourse,
+  onEnrollCourse,
   onDropCourse,
   onAddNote,
 }) => {
@@ -66,14 +66,14 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
   const handleEnroll = () => {
     if (!selectedCourseToEnroll) return;
-    onEnrollInCourse(student.id, selectedCourseToEnroll);
+    onEnrollCourse(selectedCourseToEnroll);
     setSelectedCourseToEnroll('');
   };
 
   const handleAddNoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNoteText.trim()) return;
-    onAddNote(student.id, newNoteText.trim());
+    onAddNote(newNoteText.trim());
     setNewNoteText('');
   };
 
@@ -87,7 +87,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
         id="student-detail-modal"
         className="bg-white rounded-2xl max-w-3xl w-full border border-neutral-200 shadow-2xl overflow-hidden my-2 sm:my-6 animate-in fade-in zoom-in-95 duration-150 max-h-[95vh] flex flex-col"
       >
-        {/* Dossier Header Banner */}
+        {/* Academic Record Header Banner */}
         <div className="bg-neutral-900 text-white p-4 sm:p-6 relative shrink-0">
           <button
             onClick={onClose}
@@ -104,6 +104,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl object-cover bg-neutral-800 border-2 border-neutral-700 shrink-0"
             />
             <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-300 font-bold mb-1">Academic record</p>
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
                 <h3 className="text-lg sm:text-2xl font-bold tracking-tight">
                   {student.firstName} {student.lastName}
@@ -330,6 +331,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                     <tbody className="divide-y divide-neutral-100">
                       {studentEnrollments.map((enr) => {
                         const course = courses.find((c) => c.id === enr.courseId);
+                        const courseAttendance = studentAttendance.filter((record) => record.courseId === enr.courseId);
+                        const attendanceRate = courseAttendance.length > 0
+                          ? Math.round((courseAttendance.filter((record) => record.status === 'Present' || record.status === 'Late').length / courseAttendance.length) * 100)
+                          : enr.attendanceRate;
                         return (
                           <tr key={enr.id} className="hover:bg-neutral-50/70">
                             <td className="p-3 whitespace-nowrap">
@@ -350,7 +355,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                               </select>
                             </td>
                             <td className="p-3 whitespace-nowrap">
-                              <span className="font-semibold text-neutral-800">{enr.attendanceRate}%</span>
+                               <span className="font-semibold text-neutral-800">{attendanceRate}%</span>
                             </td>
                             <td className="p-3 text-right whitespace-nowrap">
                               <button
@@ -461,7 +466,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-white border border-neutral-200 text-neutral-700 font-medium rounded-lg hover:bg-neutral-50 cursor-pointer min-h-[38px] sm:min-h-0"
           >
             <Printer className="w-3.5 h-3.5" />
-            Print Student Dossier
+              Print Academic Record
           </button>
 
           <div className="flex items-center gap-2">

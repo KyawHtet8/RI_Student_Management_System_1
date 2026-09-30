@@ -19,11 +19,11 @@ interface CoursesViewProps {
   courses?: Course[];
   students?: Student[];
   enrollments?: Enrollment[];
-  onAddCourse?: (course: Partial<Course>) => void;
-  onEnrollStudent?: (studentId: string, courseId: string) => void;
-  onDropEnrollment?: (enrollmentId: string) => void;
-  onDropCourse?: (enrollmentId: string) => void;
-  onUpdateGrade?: (enrollmentId: string, newGrade: LetterGrade) => void;
+  onAddCourse?: (course: Partial<Course>) => Promise<Course | void> | Course | void;
+  onEnrollStudent?: (studentId: string, courseId: string) => Promise<Enrollment | undefined> | Enrollment | void;
+  onDropEnrollment?: (enrollmentId: string) => Promise<void> | void;
+  onDropCourse?: (enrollmentId: string) => Promise<void> | void;
+  onUpdateGrade?: (enrollmentId: string, newGrade: LetterGrade) => Promise<void> | void;
 }
 
 export const CoursesView: React.FC<CoursesViewProps> = ({
@@ -36,15 +36,26 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
   onDropCourse,
   onUpdateGrade,
 }) => {
-  const handleDrop = (enrollmentId: string) => {
-    if (onDropCourse) onDropCourse(enrollmentId);
-    else if (onDropEnrollment) onDropEnrollment(enrollmentId);
+  const handleDrop = async (enrollmentId: string) => {
+    try {
+      if (onDropCourse) await onDropCourse(enrollmentId);
+      else if (onDropEnrollment) await onDropEnrollment(enrollmentId);
+      setRecentEnrollments((previous) => previous.filter((enrollment) => enrollment.id !== enrollmentId));
+      setActionError('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to update enrollment.');
+    }
   };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
   const [selectedCourseForRoster, setSelectedCourseForRoster] = useState<Course | null>(null);
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   const [studentToEnrollId, setStudentToEnrollId] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [studentsToEnroll, setStudentsToEnroll] = useState<string[]>([]);
+  // Keeps the roster responsive while the parent store finishes its state
+  // update after a successful backend enrollment.
+  const [recentEnrollments, setRecentEnrollments] = useState<Enrollment[]>([]);
 
   // New course form state
   const [newCourse, setNewCourse] = useState<Partial<Course>>({
@@ -73,27 +84,45 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
     return true;
   });
 
-  const handleCreateCourseSubmit = (e: React.FormEvent) => {
+  const handleCreateCourseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCourse.code || !newCourse.name || !newCourse.instructor) return;
-    onAddCourse(newCourse);
-    setShowAddCourseModal(false);
-    setNewCourse({
-      code: '',
-      name: '',
-      department: 'Computer Science',
-      credits: 3,
-      instructor: '',
-      room: 'Hall A',
-      schedule: 'Mon / Wed 10:00 - 11:30 AM',
-      semester: 'Fall 2026',
-      maxCapacity: 35,
-    });
+    try {
+      const createdCourse = await onAddCourse?.(newCourse);
+      if (createdCourse && studentsToEnroll.length > 0) {
+        for (const studentId of studentsToEnroll) {
+          const enrollment = await onEnrollStudent?.(studentId, createdCourse.id);
+          if (enrollment) setRecentEnrollments((previous) => [...previous, enrollment]);
+        }
+      }
+      // Open the new course roster immediately. The enrollment state updates
+      // above are then visible in the same View Enrolled Students flow.
+      if (createdCourse) setSelectedCourseForRoster(createdCourse);
+      setActionError('');
+      setShowAddCourseModal(false);
+      setStudentsToEnroll([]);
+      setNewCourse({
+        code: '',
+        name: '',
+        department: 'Computer Science',
+        credits: 3,
+        instructor: '',
+        room: 'Hall A',
+        schedule: 'Mon / Wed 10:00 - 11:30 AM',
+        semester: 'Fall 2026',
+        maxCapacity: 35,
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to create course.');
+    }
   };
 
   // Roster calculations for selectedCourseForRoster
+  const visibleEnrollments = [...enrollments, ...recentEnrollments].filter(
+    (enrollment, index, all) => all.findIndex((item) => item.id === enrollment.id) === index
+  );
   const currentRosterEnrollments = selectedCourseForRoster
-    ? enrollments.filter((e) => e.courseId === selectedCourseForRoster.id)
+    ? visibleEnrollments.filter((e) => e.courseId === selectedCourseForRoster.id)
     : [];
 
   const enrolledStudentIds = new Set(currentRosterEnrollments.map((e) => e.studentId));
@@ -101,6 +130,11 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
 
   return (
     <div className="space-y-5">
+      {actionError && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {actionError}
+        </div>
+      )}
       {/* Top Filter & Actions Header */}
       <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-neutral-200 shadow-2xs flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
         <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -139,7 +173,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {filteredCourses.map((course) => {
-          const courseEnrollments = enrollments.filter((e) => e.courseId === course.id);
+          const courseEnrollments = visibleEnrollments.filter((e) => e.courseId === course.id);
           const enrolledCount = courseEnrollments.length;
           const capacityPercent = Math.min(100, Math.round((enrolledCount / course.maxCapacity) * 100));
 
@@ -252,10 +286,16 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                     ))}
                   </select>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (studentToEnrollId) {
-                        onEnrollStudent(studentToEnrollId, selectedCourseForRoster.id);
-                        setStudentToEnrollId('');
+                        try {
+                          const enrollment = await onEnrollStudent?.(studentToEnrollId, selectedCourseForRoster.id);
+                          if (enrollment) setRecentEnrollments((previous) => [...previous, enrollment]);
+                          setActionError('');
+                          setStudentToEnrollId('');
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : 'Unable to enroll student.');
+                        }
                       }
                     }}
                     disabled={!studentToEnrollId}
@@ -309,7 +349,14 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                               <td className="p-3 whitespace-nowrap">
                                 <select
                                   value={enr.grade}
-                                  onChange={(e) => onUpdateGrade(enr.id, e.target.value as LetterGrade)}
+                                  onChange={async (e) => {
+                                    try {
+                                      await onUpdateGrade?.(enr.id, e.target.value as LetterGrade);
+                                      setActionError('');
+                                    } catch (error) {
+                                      setActionError(error instanceof Error ? error.message : 'Unable to update grade.');
+                                    }
+                                  }}
                                   className="px-2 py-1 bg-white border border-neutral-200 rounded font-bold text-neutral-900 text-xs"
                                 >
                                   {['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F', 'In Progress'].map((g) => (
@@ -387,6 +434,27 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                     className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-neutral-700 mb-1">
+                  Add Students to Course <span className="font-normal text-neutral-400">(optional)</span>
+                </label>
+                <select
+                  multiple
+                  value={studentsToEnroll}
+                  onChange={(e) => setStudentsToEnroll(
+                    Array.from(e.target.selectedOptions).map((option: HTMLOptionElement) => option.value)
+                  )}
+                  className="w-full min-h-24 px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-800"
+                >
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName} ({student.studentId})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-neutral-500">Hold Ctrl/Cmd to select multiple students.</p>
               </div>
 
               <div>

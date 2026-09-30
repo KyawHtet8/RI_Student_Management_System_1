@@ -71,7 +71,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav id="app-navigation" className="bg-white border-b border-neutral-200/80 sticky top-14 sm:top-16 z-20 shadow-2xs">
+    <nav id="app-navigation" className="bg-white/75 backdrop-blur-xl border-b border-neutral-200/80 sticky top-14 sm:top-16 z-20 shadow-[0_4px_16px_rgba(31,41,55,0.03)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex space-x-1 sm:space-x-3 overflow-x-auto no-scrollbar py-1.5 sm:py-2 -mx-1 px-1">
           {navItems.map((item) => {
@@ -84,11 +84,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                 onClick={() => handleTabSelect(item.id)}
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[40px] ${
                   isActive
-                    ? 'bg-neutral-900 text-white shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    ? 'bg-[#20243a] text-white shadow-md shadow-slate-900/10'
+                    : 'text-neutral-600 hover:text-indigo-700 hover:bg-indigo-50/70'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-indigo-400' : 'text-neutral-500'}`} />
+                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-cyan-300' : 'text-neutral-500'}`} />
                 <span className="hidden sm:inline">{item.label}</span>
                 <span className="sm:hidden">{item.shortLabel}</span>
                 {item.badge !== undefined && (
@@ -110,4 +110,3 @@ export const Navigation: React.FC<NavigationProps> = ({
     </nav>
   );
 };
-

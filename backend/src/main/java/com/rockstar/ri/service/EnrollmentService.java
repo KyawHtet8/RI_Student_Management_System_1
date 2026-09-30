@@ -71,7 +71,8 @@ public class EnrollmentService {
         String studentId = requireStudent(request.getStudentId());
         Course course = resolveCourse(courseIdentifier);
 
-        if (enrollmentRepository.existsByStudentIdAndCourseId(studentId, course.getId())) {
+        if (enrollmentRepository.existsByStudentIdAndCourseIdAndSemester(
+                studentId, course.getId(), requireText(course.getSemester(), "Course semester is required"))) {
             throw new IllegalStateException("Student is already enrolled in this course");
         }
         course = lockCourse(course.getId());
@@ -88,6 +89,7 @@ public class EnrollmentService {
                 .courseId(course.getId())
                 .enrollmentDate(LocalDate.now().toString())
                 .status(ENROLLED)
+                .semester(requireText(course.getSemester(), "Course semester is required"))
                 .build();
         try {
             Enrollment saved = enrollmentRepository.save(enrollment);

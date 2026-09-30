@@ -11,11 +11,14 @@ export interface SystemAnalytics {
     percent: number;
     avgGpa: number;
   }>;
+  term?: string;
+  department?: string;
+  generatedAt?: string;
 }
 
 export const analyticsApi = {
-  getSystemAnalytics: async (): Promise<SystemAnalytics> => {
-    return apiClient<SystemAnalytics>('/analytics/overview');
+  getSystemAnalytics: async (params?: { term?: string; department?: string }): Promise<SystemAnalytics> => {
+    return apiClient<SystemAnalytics>('/analytics/overview', { params });
   },
 
   getAuditLogs: async (): Promise<ActivityLog[]> => {

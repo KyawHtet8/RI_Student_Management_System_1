@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { 
   GraduationCap, 
   Plus, 
-  Search, 
   Calendar, 
   History, 
   Bell, 
   Download,
-  X
+  X,
 } from 'lucide-react';
 import { Student, ActivityLog } from '../types';
 
@@ -16,11 +15,8 @@ interface HeaderProps {
   onOpenAddModal?: () => void;
   logs?: ActivityLog[];
   onExportCSV?: () => void;
-  globalSearch?: string;
-  onSearchChange?: (val: string) => void;
   activeTerm?: string;
   onTermChange?: (term: string) => void;
-  searchQuery?: string;
   onEnrollClick?: () => void;
 }
 
@@ -29,40 +25,31 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddModal,
   logs = [],
   onExportCSV,
-  globalSearch,
-  searchQuery,
-  onSearchChange,
   activeTerm = 'Fall Semester 2026',
   onTermChange,
   onEnrollClick,
 }) => {
   const [showLogs, setShowLogs] = useState(false);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
-
-  const currentSearch = globalSearch !== undefined ? globalSearch : (searchQuery || '');
-  const handleSearchChange = (val: string) => {
-    if (onSearchChange) onSearchChange(val);
-  };
   const handleEnroll = () => {
     if (onEnrollClick) onEnrollClick();
     else if (onOpenAddModal) onOpenAddModal();
   };
 
   return (
-    <header id="app-header" className="bg-white border-b border-neutral-200/80 sticky top-0 z-30 shadow-xs">
+    <header id="app-header" className="bg-white/85 backdrop-blur-xl border-b border-neutral-200/80 sticky top-0 z-30 shadow-[0_4px_24px_rgba(31,41,55,0.04)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
           
           {/* Logo & System Brand */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-max">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs shrink-0">
-              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[13px] bg-gradient-to-br from-indigo-600 to-violet-700 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-200" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-bold tracking-tight text-neutral-900 text-base sm:text-lg">NextSMS</span>
+                <span className="brand-display font-bold tracking-tight text-neutral-900 text-base sm:text-lg">NextSMS</span>
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-                  Campus v2.6
+                  CAMPUS · 2.6
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-neutral-500 font-medium hidden md:block">
@@ -71,44 +58,8 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Quick Search Bar (Desktop) */}
-          <div className="flex-1 max-w-md hidden md:block">
-            <div className="relative">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                id="global-search-input"
-                type="text"
-                value={currentSearch}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search student ID, name, email or major..."
-                className="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
-              />
-              {currentSearch && (
-                <button 
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-0.5 cursor-pointer"
-                  aria-label="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2.5">
-            {/* Mobile Search Toggle Button */}
-            <button
-              id="header-mobile-search-toggle"
-              onClick={() => setShowMobileSearch(!showMobileSearch)}
-              aria-label="Toggle mobile search"
-              className={`p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg md:hidden transition-colors cursor-pointer ${
-                showMobileSearch || currentSearch ? 'bg-indigo-50 text-indigo-700' : ''
-              }`}
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
             {/* Term Badge */}
             <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-neutral-100 rounded-lg text-xs font-medium text-neutral-700">
               <Calendar className="w-3.5 h-3.5 text-neutral-500" />
@@ -192,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-add-student-btn"
               onClick={handleEnroll}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 active:bg-neutral-950 text-white rounded-lg text-xs font-semibold transition-all shadow-xs hover:shadow cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-indigo-600/20 hover:shadow-lg cursor-pointer shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Enroll Student</span>
@@ -202,34 +153,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Expandable Mobile Search Drawer */}
-        {showMobileSearch && (
-          <div className="py-2.5 border-t border-neutral-100 md:hidden animate-in fade-in slide-in-from-top-1 duration-150">
-            <div className="relative">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="global-mobile-search-input"
-                type="text"
-                value={currentSearch}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search student ID, name, email or major..."
-                autoFocus
-                className="w-full pl-9 pr-8 py-2 text-xs bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden focus:bg-white focus:border-indigo-500"
-              />
-              {currentSearch && (
-                <button 
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-1"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
       </div>
     </header>
   );
 };
-

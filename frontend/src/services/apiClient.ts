@@ -5,7 +5,7 @@
  * for development when the backend server is not active.
  */
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 
 export interface RequestOptions extends RequestInit {
   authToken?: string;
@@ -14,9 +14,9 @@ export interface RequestOptions extends RequestInit {
 
 export class ApiError extends Error {
   status: number;
-  data: any;
+  data: unknown;
 
-  constructor(status: number, message: string, data?: any) {
+  constructor(status: number, message: string, data?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -47,9 +47,11 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     Accept: 'application/json',
   };
 
-  const token = authToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null);
+  const token = authToken || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('auth_token') : null);
   if (token) {
-    (defaultHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    (defaultHeaders as Record<string, string>)['Authorization'] = token.startsWith('Basic ')
+      ? token
+      : `Bearer ${token}`;
   }
 
   const config: RequestInit = {
@@ -74,12 +76,13 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     }
 
     return await response.json();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If it's already an ApiError from non-2xx status, rethrow
     if (error instanceof ApiError) {
       throw error;
     }
     // Network failure or connection refused (e.g. backend offline during standalone frontend preview)
-    throw new ApiError(0, error?.message || 'Network connection failed', error);
+    const message = error instanceof Error ? error.message : 'Network connection failed';
+    throw new ApiError(0, message, error);
   }
 }

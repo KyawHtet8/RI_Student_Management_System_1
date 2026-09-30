@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   TrendingUp, 
   Award, 
@@ -11,25 +11,45 @@ import {
 } from 'lucide-react';
 import { Student, Course, Enrollment } from '../types';
 import { DEPARTMENTS } from '../data/mockData';
+import { analyticsApi, SystemAnalytics } from '../features/analytics/api/analyticsApi';
 
 interface AnalyticsViewProps {
   students?: Student[];
   courses?: Course[];
   enrollments?: Enrollment[];
+  term?: string;
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   students = [],
   courses = [],
   enrollments = [],
+  term,
 }) => {
   const studentList = Array.isArray(students) ? students : [];
+  const [serverAnalytics, setServerAnalytics] = useState<SystemAnalytics | null>(null);
+  const analyticsKey = [
+    ...studentList.map((student) => `${student.id}:${student.gpa}:${student.status}`),
+    ...courses.map((course) => `${course.id}:${course.semester}:${course.enrolledCount}`),
+    ...enrollments.map((enrollment) => `${enrollment.id}:${enrollment.grade}`),
+  ].join('|');
+
+  // The backend is authoritative when available. Local calculations remain a
+  // demo-mode fallback when the API is offline.
+  useEffect(() => {
+    analyticsApi.getSystemAnalytics({ term })
+      .then(setServerAnalytics)
+      .catch(() => setServerAnalytics(null));
+  }, [analyticsKey, term]);
+
   // Metrics calculation
-  const totalStudents = studentList.length;
+  const totalStudents = serverAnalytics?.totalStudents ?? studentList.length;
   const activeStudents = studentList.filter((s) => s.status === 'Active').length;
   const activeRate = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
 
-  const avgGPA = totalStudents > 0
+  const avgGPA = serverAnalytics
+    ? serverAnalytics.averageGPA.toFixed(2)
+    : totalStudents > 0
     ? (studentList.reduce((acc, s) => acc + (s.gpa || 0), 0) / totalStudents).toFixed(2)
     : '0.00';
 

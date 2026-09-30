@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from './store';
-import { Student } from '../types';
+import { useAuth } from './auth';
+import { Student, StudentStatus } from '../types';
 import { Header } from '../components/Header';
 import { Navigation } from '../components/Navigation';
 import { StudentList } from '../features/students';
@@ -9,7 +10,7 @@ import { StudentDetailModal } from '../features/students';
 import { CoursesView } from '../features/courses';
 import { AttendanceView } from '../features/attendance';
 import { AnalyticsView, SettingsView } from '../features/analytics';
-import { CheckCircle2, AlertCircle, Info, Radio } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, Radio, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const AppRoutes: React.FC = () => {
@@ -39,6 +40,7 @@ export const AppRoutes: React.FC = () => {
     exportRosterCSV,
     resetToDefaults,
   } = useAppStore();
+  const { username, logout } = useAuth();
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<Student | null>(null);
@@ -70,37 +72,54 @@ export const AppRoutes: React.FC = () => {
   };
 
   const handleDeleteStudent = async (id: string) => {
-    await deleteStudent(id);
-    if (selectedStudentDetail?.id === id) {
-      setSelectedStudentDetail(null);
+    try {
+      await deleteStudent(id);
+      if (selectedStudentDetail?.id === id) {
+        setSelectedStudentDetail(null);
+      }
+      showToast('Student record archived');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to archive student record', 'error');
     }
-    showToast('Student record archived');
   };
 
-  const handleBatchStatus = async (ids: string[], status: any) => {
-    await batchUpdateStudentStatus(ids, status);
-    showToast(`Updated ${ids.length} student(s) to ${status}`);
+  const handleBatchStatus = async (ids: string[], status: StudentStatus) => {
+    try {
+      await batchUpdateStudentStatus(ids, status);
+      showToast(`Updated ${ids.length} student(s) to ${status}`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to update student status', 'error');
+    }
   };
 
   const handleBatchDelete = async (ids: string[]) => {
-    await batchDeleteStudents(ids);
-    showToast(`Archived ${ids.length} students`);
+    try {
+      await batchDeleteStudents(ids);
+      showToast(`Archived ${ids.length} students`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to archive students', 'error');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100/60 text-neutral-900 flex flex-col font-sans antialiased">
+    <div className="app-shell min-h-screen bg-neutral-100/60 text-neutral-900 flex flex-col font-sans antialiased">
       {/* Top Banner indicating architecture status */}
-      <div className="bg-neutral-900 text-neutral-300 text-xs px-4 py-1.5 flex flex-wrap items-center justify-between border-b border-neutral-800">
+      <div className="bg-[#171b2d] text-neutral-300 text-xs px-4 py-1.5 flex flex-wrap items-center justify-between border-b border-indigo-900/40">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 font-medium">
-            <Radio className={`w-3.5 h-3.5 ${serverConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+            <Radio className={`w-3.5 h-3.5 ${serverConnected ? 'text-cyan-300 animate-pulse' : 'text-amber-300'}`} />
             {serverConnected ? 'Spring Boot REST Connected' : 'Modular Monolith Architecture Ready'}
           </span>
           <span className="text-neutral-500">•</span>
           <span className="text-neutral-400 hidden sm:inline">Feature-Driven Domain Layer (Students, Courses, Attendance, Analytics)</span>
         </div>
-        <div className="text-[11px] font-mono text-neutral-400">
-          API Endpoint: <span className="text-indigo-300">/api/v1/*</span>
+        <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-400">
+          <span className="hidden sm:inline">API Endpoint: <span className="text-cyan-300">/api/v1/*</span></span>
+          <span className="font-sans text-neutral-300">{username}</span>
+          <button onClick={logout} className="inline-flex items-center gap-1 rounded px-1.5 py-1 font-sans text-neutral-400 hover:bg-white/10 hover:text-white" title="Sign out">
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </div>
 
@@ -108,9 +127,6 @@ export const AppRoutes: React.FC = () => {
       <Header
         activeTerm={term}
         onTermChange={setTerm}
-        globalSearch={globalSearch}
-        searchQuery={globalSearch}
-        onSearchChange={setGlobalSearch}
         studentsCount={students.length}
         logs={logs}
         onExportCSV={() => {
@@ -132,7 +148,7 @@ export const AppRoutes: React.FC = () => {
       />
 
       {/* View Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
         <AnimatePresence mode="wait">
           {activeTab === 'students' && (
             <motion.div
@@ -173,9 +189,10 @@ export const AppRoutes: React.FC = () => {
                 onEnrollStudent={enrollStudentInCourse}
                 onDropCourse={dropCourseEnrollment}
                 onUpdateGrade={updateEnrollmentGrade}
-                onAddCourse={(c) => {
-                  createCourse(c);
+                onAddCourse={async (c) => {
+                  const created = await createCourse(c);
                   showToast(`Created course ${c.code}`);
+                  return created;
                 }}
               />
             </motion.div>
@@ -194,8 +211,8 @@ export const AppRoutes: React.FC = () => {
                 students={students}
                 enrollments={enrollments}
                 attendanceRecords={attendance}
-                onSaveAttendance={(date, courseId, entries) => {
-                  saveAttendanceSheet(date, courseId, entries);
+                onSaveAttendance={async (date, courseId, entries) => {
+                  await saveAttendanceSheet(date, courseId, entries);
                   showToast('Saved attendance roster');
                 }}
               />
@@ -214,6 +231,7 @@ export const AppRoutes: React.FC = () => {
                 students={students}
                 courses={courses}
                 enrollments={enrollments}
+                term={term}
               />
             </motion.div>
           )}
@@ -272,13 +290,13 @@ export const AppRoutes: React.FC = () => {
         existingCount={students.length}
       />
 
-      {/* Student Dossier & Transcript Modal Dialog */}
+      {/* Student Academic Record & Transcript Modal Dialog */}
       {selectedStudentDetail && (
         <StudentDetailModal
           student={selectedStudentDetail}
           enrollments={enrollments.filter((e) => e.studentId === selectedStudentDetail.id)}
           courses={courses}
-          attendanceRecords={attendance.filter((a) => a.studentId === selectedStudentDetail.id)}
+          attendance={attendance.filter((a) => a.studentId === selectedStudentDetail.id)}
           onClose={() => setSelectedStudentDetail(null)}
           onEdit={(s) => {
             setSelectedStudentDetail(null);

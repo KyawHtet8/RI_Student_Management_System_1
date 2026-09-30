@@ -3,6 +3,7 @@ package com.rockstar.ri.service;
 import com.rockstar.ri.dto.CreateCourseRequest;
 import com.rockstar.ri.dto.UpdateCourseRequest;
 import com.rockstar.ri.model.Course;
+import com.rockstar.ri.exception.ResourceNotFoundException;
 import com.rockstar.ri.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,12 +31,12 @@ public class CourseService {
     @Transactional(readOnly = true)
     public Course getCourseById(String identifier) {
         if (identifier == null || identifier.isBlank()) {
-            throw new RuntimeException("Course not found with identifier: " + identifier);
+            throw new ResourceNotFoundException("Course not found with identifier: " + identifier);
         }
         String normalizedIdentifier = identifier.trim();
         return repository.findById(normalizedIdentifier)
                 .or(() -> repository.findByCodeIgnoreCase(normalizedIdentifier))
-                .orElseThrow(() -> new RuntimeException("Course not found with identifier: " + identifier));
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with identifier: " + identifier));
     }
 
     @Transactional
@@ -48,7 +49,7 @@ public class CourseService {
         Course course = Course.builder().id(generateId()).code(code).name(clean(request.getName()))
                 .department(clean(request.getDepartment())).credits(request.getCredits())
                 .instructor(clean(request.getInstructor())).capacity(request.getCapacity())
-                .enrolled(defaultEnrolled(request.getEnrolled())).semester(cleanNullable(request.getSemester()))
+                .enrolled(defaultEnrolled(request.getEnrolled())).semester(requireText(request.getSemester(), "Course semester is required"))
                 .schedule(cleanNullable(request.getSchedule())).room(cleanNullable(request.getRoom())).build();
         log.info("Created course {} ({})", course.getId(), course.getCode());
         return repository.save(course);
@@ -69,7 +70,7 @@ public class CourseService {
         existing.setInstructor(clean(request.getInstructor()));
         existing.setCapacity(request.getCapacity());
         existing.setEnrolled(request.getEnrolled());
-        existing.setSemester(cleanNullable(request.getSemester()));
+        existing.setSemester(requireText(request.getSemester(), "Course semester is required"));
         existing.setSchedule(cleanNullable(request.getSchedule()));
         existing.setRoom(cleanNullable(request.getRoom()));
         log.info("Updated course {} ({})", existing.getId(), existing.getCode());
@@ -110,5 +111,9 @@ public class CourseService {
         return code.trim().toUpperCase(Locale.ROOT);
     }
     private static String clean(String value) { return value == null ? null : value.trim(); }
+    private static String requireText(String value, String message) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(message);
+        return value.trim();
+    }
     private static String cleanNullable(String value) { return value == null || value.isBlank() ? null : value.trim(); }
 }

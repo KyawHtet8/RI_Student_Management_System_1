@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,11 +20,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/attendance")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequiredArgsConstructor
 public class AttendanceController {
 
     private final AttendanceService service;
+
+    @GetMapping
+    public ResponseEntity<List<AttendanceRecord>> getAll() {
+        return ResponseEntity.ok(service.getAllAttendance());
+    }
 
     @GetMapping("/course/{courseIdentifier}/date/{date}")
     public ResponseEntity<List<AttendanceRecord>> getForClass(@PathVariable String courseIdentifier,

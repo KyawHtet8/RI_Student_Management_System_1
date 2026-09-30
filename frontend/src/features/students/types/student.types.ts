@@ -8,6 +8,6 @@ export interface StudentFilterParams {
 }
 
 export interface BatchUpdateStatusPayload {
-  studentIds: string[];
+  ids: string[];
   status: string;
 }

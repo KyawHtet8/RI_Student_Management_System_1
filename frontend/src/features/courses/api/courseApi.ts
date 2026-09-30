@@ -7,6 +7,10 @@ export const courseApi = {
     return apiClient<Course[]>('/courses');
   },
 
+  getEnrollments: async (): Promise<Enrollment[]> => {
+    return apiClient<Enrollment[]>('/enrollments');
+  },
+
   createCourse: async (data: CreateCoursePayload): Promise<Course> => {
     return apiClient<Course>('/courses', {
       method: 'POST',
@@ -15,7 +19,7 @@ export const courseApi = {
   },
 
   enrollStudent: async (payload: EnrollStudentPayload): Promise<Enrollment> => {
-    return apiClient<Enrollment>(`/courses/${payload.courseId}/enroll`, {
+    return apiClient<Enrollment>(`/enrollments/courses/${payload.courseId}/enroll`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -23,7 +27,7 @@ export const courseApi = {
 
   updateGrade: async (enrollmentId: string, grade: LetterGrade): Promise<Enrollment> => {
     return apiClient<Enrollment>(`/enrollments/${enrollmentId}/grade`, {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify({ grade }),
     });
   },

@@ -1,7 +1,6 @@
 package com.rockstar.ri.exception;
 
 import com.rockstar.ri.dto.ErrorResponse;
-import com.rockstar.ri.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,15 +55,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND", ex.getMessage());
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-    }
-
-    // Existing service APIs use RuntimeException for missing resources.
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex) {
-        log.warn("Runtime Exception caught: {}", ex.getMessage());
-        ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND", ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 

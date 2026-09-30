@@ -5,6 +5,7 @@ import { studentApi } from '../features/students/api/studentApi';
 import { courseApi } from '../features/courses/api/courseApi';
 import { attendanceApi } from '../features/attendance/api/attendanceApi';
 import { calculateGPA } from '../shared/utils/formatters';
+import { ApiError } from '../services/apiClient';
 
 interface AppStoreContextType {
   // Navigation
@@ -30,8 +31,8 @@ interface AppStoreContextType {
   batchDeleteStudents: (ids: string[]) => Promise<void>;
 
   // Course Actions
-  createCourse: (course: Omit<Course, 'id' | 'enrolledCount'>) => Promise<void>;
-  enrollStudentInCourse: (studentId: string, courseId: string) => Promise<void>;
+  createCourse: (course: Omit<Course, 'id' | 'enrolledCount'>) => Promise<Course>;
+  enrollStudentInCourse: (studentId: string, courseId: string) => Promise<Enrollment | undefined>;
   updateEnrollmentGrade: (enrollmentId: string, grade: LetterGrade) => Promise<void>;
   dropCourseEnrollment: (enrollmentId: string) => Promise<void>;
 
@@ -47,6 +48,41 @@ interface AppStoreContextType {
 }
 
 const AppStoreContext = createContext<AppStoreContextType | null>(null);
+
+const normalizeStudent = (student: Partial<Student>, fallback?: Student): Student => ({
+  ...(fallback || INITIAL_STUDENTS[0]),
+  ...student,
+  phone: student.phone ?? fallback?.phone ?? '',
+  avatar: student.avatar ?? (student as any).avatarUrl ?? fallback?.avatar,
+  address: student.address ?? fallback?.address ?? { street: '', city: '', state: '', zip: '' },
+  emergencyContact: student.emergencyContact ?? fallback?.emergencyContact ?? { name: '', relationship: '', phone: '' },
+  notes: student.notes ?? fallback?.notes ?? [],
+});
+
+const normalizeEnrollment = (enrollment: any): Enrollment => ({
+  id: enrollment.id,
+  studentId: enrollment.studentId,
+  courseId: enrollment.courseId,
+  semester: enrollment.semester || enrollment.term || '',
+  grade: enrollment.grade || 'In Progress',
+  attendanceRate: enrollment.attendanceRate ?? 0,
+  enrolledAt: enrollment.enrolledAt || enrollment.enrollmentDate || '',
+});
+
+const normalizeAttendance = (record: any): AttendanceEntry => ({
+  id: record.id,
+  date: record.date,
+  courseId: record.courseId,
+  studentId: record.studentId,
+  status: record.status,
+  remarks: record.remarks,
+});
+
+// Demo/local mode is only allowed when the server cannot be reached. Validation,
+// authorization, and business-rule errors must reach the caller instead of being
+// presented as a successful local write.
+const isNetworkFailure = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 0;
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ViewTab>('students');
@@ -151,9 +187,17 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const attemptHandshake = async () => {
       try {
         setIsLoading(true);
-        const remoteStudents = await studentApi.getStudents();
-        if (remoteStudents && Array.isArray(remoteStudents)) {
-          setStudents(remoteStudents);
+        const [remoteStudents, remoteCourses, remoteEnrollments, remoteAttendance] = await Promise.all([
+          studentApi.getStudents(),
+          courseApi.getCourses(),
+          courseApi.getEnrollments(),
+          attendanceApi.getAllRecords(),
+        ]);
+        if (Array.isArray(remoteStudents)) {
+          setStudents(remoteStudents.map((student) => normalizeStudent(student, students.find((item) => item.id === student.id))));
+          setCourses(Array.isArray(remoteCourses) ? remoteCourses : []);
+          setEnrollments(Array.isArray(remoteEnrollments) ? remoteEnrollments.map(normalizeEnrollment) : []);
+          setAttendance(Array.isArray(remoteAttendance) ? remoteAttendance.map(normalizeAttendance) : []);
           setServerConnected(true);
           addLog('Remote Sync Success', 'Successfully synchronized data from Spring Boot REST API', 'system');
         }
@@ -170,16 +214,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Recalculate course enrolled count
   const updatedCourses = courses.map((course) => {
     const count = enrollments.filter((e) => e.courseId === course.id).length;
-    return { ...course, enrolledCount: count };
+    return { ...course, enrolledCount: enrollments.length > 0 ? count : course.enrolledCount };
   });
 
   // Student Actions
   const createStudent = async (data: Partial<Student>) => {
     try {
-      await studentApi.createStudent(data);
+      const created = await studentApi.createStudent(data);
+      setStudents((prev) => [normalizeStudent(created), ...prev]);
       setServerConnected(true);
-    } catch {
-      // Offline fallback
+      addLog('Student Enrolled', `Created new academic record for ${created.firstName} ${created.lastName} (${created.studentId})`, 'create');
+      return;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     const newId = `stu-${Date.now()}`;
@@ -215,10 +263,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateStudent = async (id: string, data: Partial<Student>) => {
     try {
-      await studentApi.updateStudent(id, data);
+      const updated = await studentApi.updateStudent(id, data);
+      setStudents((prev) => prev.map((student) => student.id === id ? normalizeStudent(updated, student) : student));
       setServerConnected(true);
-    } catch {
-      // Offline fallback
+      addLog('Record Updated', `Updated profile record for ${updated.firstName} ${updated.lastName}`, 'update');
+      return;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     setStudents((prev) =>
@@ -232,8 +284,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       await studentApi.deleteStudent(id);
       setServerConnected(true);
-    } catch {
-      // Offline fallback
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     setStudents((prev) => prev.filter((s) => s.id !== id));
@@ -244,9 +297,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const batchUpdateStudentStatus = async (ids: string[], status: StudentStatus) => {
     try {
-      await studentApi.batchUpdateStatus({ studentIds: ids, status });
-    } catch {
-      // Offline fallback
+      await studentApi.batchUpdateStatus({ ids, status });
+      setStudents((prev) => prev.map((s) => (ids.includes(s.id) ? { ...s, status } : s)));
+      setServerConnected(true);
+      addLog('Batch Operation', `Bulk updated status to '${status}' for ${ids.length} student(s)`, 'update');
+      return;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     setStudents((prev) =>
@@ -265,9 +323,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Course Actions
   const createCourse = async (courseData: Omit<Course, 'id' | 'enrolledCount'>) => {
     try {
-      await courseApi.createCourse(courseData);
-    } catch {
-      // Offline fallback
+      const created = await courseApi.createCourse(courseData);
+      setCourses((prev) => [...prev, created]);
+      setServerConnected(true);
+      addLog('Course Created', `Added ${created.code}: ${created.name} to course catalog`, 'create');
+      return created;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     const newCourse: Course = {
@@ -277,6 +340,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     setCourses((prev) => [...prev, newCourse]);
     addLog('Course Created', `Added ${newCourse.code}: ${newCourse.name} to course catalog`, 'create');
+    return newCourse;
   };
 
   const enrollStudentInCourse = async (studentId: string, courseId: string) => {
@@ -284,9 +348,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (alreadyEnrolled) return;
 
     try {
-      await courseApi.enrollStudent({ studentId, courseId, semester: term });
-    } catch {
-      // Offline fallback
+      const created = await courseApi.enrollStudent({ studentId, courseId, semester: term });
+      setEnrollments((prev) => [...prev, normalizeEnrollment(created)]);
+      setServerConnected(true);
+      const student = students.find((s) => s.id === studentId);
+      const course = courses.find((c) => c.id === courseId);
+      addLog('Course Enrollment', `Enrolled ${student?.firstName} ${student?.lastName} into ${course?.code}`, 'create');
+      return normalizeEnrollment(created);
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     const newEnrollment: Enrollment = {
@@ -304,13 +375,27 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const student = students.find((s) => s.id === studentId);
     const course = courses.find((c) => c.id === courseId);
     addLog('Course Enrollment', `Enrolled ${student?.firstName} ${student?.lastName} into ${course?.code}`, 'create');
+    return newEnrollment;
   };
 
   const updateEnrollmentGrade = async (enrollmentId: string, grade: LetterGrade) => {
     try {
-      await courseApi.updateGrade(enrollmentId, grade);
-    } catch {
-      // Offline fallback
+      const updated = normalizeEnrollment(await courseApi.updateGrade(enrollmentId, grade));
+      setEnrollments((prev) => prev.map((enrollment) => enrollment.id === enrollmentId ? updated : enrollment));
+      setServerConnected(true);
+      const targetEnrollment = enrollments.find((enr) => enr.id === enrollmentId);
+      if (targetEnrollment) {
+        const nextEnrollments = enrollments.map((enr) => enr.id === enrollmentId ? updated : enr);
+        const newGPA = calculateGPA(nextEnrollments
+          .filter((e) => e.studentId === targetEnrollment.studentId)
+          .map((e) => ({ ...e, credits: courses.find((course) => course.id === e.courseId)?.credits ?? 0 })));
+        setStudents((prev) => prev.map((s) => s.id === targetEnrollment.studentId ? { ...s, gpa: newGPA } : s));
+      }
+      addLog('Grade Assigned', `Assigned Grade '${grade}' for course enrollment`, 'grade');
+      return;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     const targetEnrollment = enrollments.find((e) => e.id === enrollmentId);
@@ -321,7 +406,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (targetEnrollment) {
       const studentEnrollments = nextEnrollments.filter((e) => e.studentId === targetEnrollment.studentId);
-      const newGPA = calculateGPA(studentEnrollments);
+      const newGPA = calculateGPA(studentEnrollments
+        .map((e) => ({ ...e, credits: courses.find((course) => course.id === e.courseId)?.credits ?? 0 })));
       setStudents((prev) =>
         prev.map((s) => (s.id === targetEnrollment.studentId ? { ...s, gpa: newGPA } : s))
       );
@@ -332,8 +418,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const dropCourseEnrollment = async (enrollmentId: string) => {
     try {
       await courseApi.dropCourse(enrollmentId);
-    } catch {
-      // Offline fallback
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     const target = enrollments.find((e) => e.id === enrollmentId);
@@ -343,7 +430,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const remainingEnrollments = enrollments.filter(
         (e) => e.studentId === target.studentId && e.id !== enrollmentId
       );
-      const newGPA = calculateGPA(remainingEnrollments);
+      const newGPA = calculateGPA(remainingEnrollments
+        .map((e) => ({ ...e, credits: courses.find((course) => course.id === e.courseId)?.credits ?? 0 })));
       setStudents((prev) =>
         prev.map((s) => (s.id === target.studentId ? { ...s, gpa: newGPA } : s))
       );
@@ -358,9 +446,18 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     entries: { studentId: string; status: any; remarks?: string }[]
   ) => {
     try {
-      await attendanceApi.saveAttendanceSheet({ date, courseId, records: entries });
-    } catch {
-      // Offline fallback
+      const saved = await attendanceApi.saveAttendanceSheet({ date, courseId, records: entries });
+      setAttendance((prev) => {
+        const filtered = prev.filter((rec) => !(rec.courseId === courseId && rec.date === date));
+        return [...filtered, ...saved.map(normalizeAttendance)];
+      });
+      setServerConnected(true);
+      const course = courses.find((c) => c.id === courseId);
+      addLog('Attendance Recorded', `Saved roster attendance sheet for ${course?.code} on ${date}`, 'attendance');
+      return;
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
     }
 
     setAttendance((prev) => {

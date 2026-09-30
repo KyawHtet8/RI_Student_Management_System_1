@@ -16,7 +16,7 @@ import {
   Download,
   Check,
   X,
-  GraduationCap
+  GraduationCap,
 } from 'lucide-react';
 import { Student, AcademicYear, StudentStatus } from '../types';
 import { DEPARTMENTS } from '../data/mockData';
@@ -534,10 +534,12 @@ export const StudentList: React.FC<StudentListProps> = ({
                           <button
                             id={`btn-view-${student.id}`}
                             onClick={() => onSelectStudent(student)}
-                            className="p-1.5 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
-                            title="View Full Profile"
+                            aria-label={`View academic record for ${student.firstName} ${student.lastName}`}
+                            title="View Academic Record"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 border border-indigo-100 rounded-lg text-[11px] font-bold transition-all cursor-pointer shadow-sm shadow-indigo-500/5"
                           >
                             <Eye className="w-3.5 h-3.5" />
+                            <span>Academic record</span>
                           </button>
                           <button
                             id={`btn-edit-${student.id}`}
@@ -639,10 +641,12 @@ export const StudentList: React.FC<StudentListProps> = ({
                 <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-xs">
                   <button
                     onClick={() => onSelectStudent(student)}
-                    className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer py-1"
+                            aria-label={`View academic record for ${student.firstName} ${student.lastName}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 border border-indigo-100 rounded-lg font-bold cursor-pointer transition-all"
                   >
-                    View Dossier →
-                  </button>
+                    <Eye className="w-3.5 h-3.5" />
+                      Academic record
+                    </button>
 
                   <div className="flex items-center gap-1">
                     <button

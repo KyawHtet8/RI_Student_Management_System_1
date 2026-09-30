@@ -47,6 +47,7 @@ public class Course {
     @Builder.Default
     private Integer enrolled = 0;
 
+    @Column(nullable = false, length = 40)
     private String semester;
     private String schedule;
     private String room;

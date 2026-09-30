@@ -19,8 +19,8 @@ interface AttendanceViewProps {
   enrollments?: Enrollment[];
   attendance?: AttendanceEntry[];
   attendanceRecords?: AttendanceEntry[];
-  onSaveAttendanceBatch?: (records: AttendanceEntry[]) => void;
-  onSaveAttendance?: (date: string, courseId: string, entries: { studentId: string; status: AttendanceStatus; remarks?: string }[]) => void;
+  onSaveAttendanceBatch?: (records: AttendanceEntry[]) => Promise<void> | void;
+  onSaveAttendance?: (date: string, courseId: string, entries: { studentId: string; status: AttendanceStatus; remarks?: string }[]) => Promise<void> | void;
 }
 
 export const AttendanceView: React.FC<AttendanceViewProps> = ({
@@ -38,6 +38,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({});
   const [localStatuses, setLocalStatuses] = useState<Record<string, AttendanceStatus>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Active course
   const activeCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
@@ -88,7 +89,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
     setSavedSuccess(false);
   };
 
-  const handleSaveAttendance = () => {
+  const handleSaveAttendance = async () => {
     const newRecords: AttendanceEntry[] = enrolledStudents.map((s) => ({
       id: `att-${selectedDate}-${selectedCourseId}-${s.id}`,
       date: selectedDate,
@@ -98,21 +99,27 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       remarks: sessionNotes[s.id] || undefined,
     }));
 
-    if (onSaveAttendance) {
-      onSaveAttendance(
-        selectedDate,
-        selectedCourseId,
-        newRecords.map((r) => ({
-          studentId: r.studentId,
-          status: r.status,
-          remarks: r.remarks,
-        }))
-      );
-    } else if (onSaveAttendanceBatch) {
-      onSaveAttendanceBatch(newRecords);
+    try {
+      if (onSaveAttendance) {
+        await onSaveAttendance(
+          selectedDate,
+          selectedCourseId,
+          newRecords.map((r) => ({
+            studentId: r.studentId,
+            status: r.status,
+            remarks: r.remarks,
+          }))
+        );
+      } else if (onSaveAttendanceBatch) {
+        await onSaveAttendanceBatch(newRecords);
+      }
+      setSaveError('');
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (error) {
+      setSavedSuccess(false);
+      setSaveError(error instanceof Error ? error.message : 'Unable to save attendance.');
     }
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   // Stats calculation
@@ -125,6 +132,11 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
   return (
     <div className="space-y-5">
+      {saveError && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {saveError}
+        </div>
+      )}
       {/* Selection Control Panel */}
       <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-neutral-200 shadow-2xs">
         <div className="flex flex-col lg:flex-row gap-3.5 sm:gap-4 items-stretch lg:items-center justify-between">
