@@ -45,6 +45,9 @@ RI_SMS_APP/
 └── .env.example             # Local/Docker configuration template
 ```
 
+The detailed current database relationship model is documented in
+[`docs/DATABASE-RELATIONSHIPS.md`](docs/DATABASE-RELATIONSHIPS.md).
+
 ## 4. Frontend flow
 
 ```text
@@ -166,6 +169,88 @@ GET /actuator/health
 - Keep credentials in deployment secrets and remove the default password.
 - Use database migrations such as Flyway or Liquibase instead of relying on `ddl-auto=update` in production.
 
+### 8.1 Flyway and JPA schema ownership
+
+Flyway and JPA have different responsibilities and should not both modify the
+production schema:
+
+```text
+Flyway migrations  → create and change PostgreSQL schema
+JPA/Hibernate      → map entities and validate the schema
+DataInitializer    → insert development/demo data only
+```
+
+The current MVP uses a transitional setup. Docker runs Hibernate with
+`ddl-auto=update`, while Flyway applies the numbered migrations under
+`backend/src/main/resources/db/migration`:
+
+```text
+V1__tighten_academic_constraints.sql
+V2__require_course_terms.sql
+V3__widen_enrollment_reference_ids.sql
+V4__widen_attendance_reference_ids.sql
+```
+
+On startup the order is:
+
+```text
+PostgreSQL available
+  → Flyway validates and applies pending migrations
+  → Hibernate creates/updates missing tables in the MVP configuration
+  → DataInitializer inserts demo data
+  → GPA values are rebuilt from enrollment grades
+  → application health check becomes available
+```
+
+Flyway records applied migrations in `flyway_schema_history`. A migration that
+has already run must never be edited; add a new version instead:
+
+```text
+V5__complete_initial_schema.sql
+V6__add_course_offerings.sql
+V7__add_audit_columns.sql
+```
+
+The recommended production transition is:
+
+1. Back up PostgreSQL.
+2. Add a complete initial-schema migration that can create all tables on a
+   clean database while preserving existing data.
+3. Test that migration against both a clean database and the existing
+   database.
+4. Change Docker from `SPRING_JPA_HIBERNATE_DDL_AUTO=update` to
+   `SPRING_JPA_HIBERNATE_DDL_AUTO=validate`.
+5. Let Flyway own all future schema changes.
+
+Production configuration should eventually be:
+
+```properties
+spring.flyway.enabled=true
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+Do not use `ddl-auto=create`, `create-drop`, or `update` against a production
+database. The test profile may continue to use H2 with `create-drop` for fast
+unit tests, but PostgreSQL/Testcontainers integration tests should also run
+Flyway migrations because H2 does not reproduce every PostgreSQL behavior.
+
+### 8.2 Data initialization rules
+
+`DataInitializer` is not a schema migration. It is currently a development
+convenience that creates sample students, courses, enrollments, and attendance
+when the tables are empty. It also recalculates cached GPA values from actual
+enrollment grades during startup.
+
+Before production, run demo initialization only under a development profile:
+
+```java
+@Profile("demo")
+```
+
+Production startup should never insert demo records based only on a row count.
+Schema structure belongs in Flyway; real application data belongs in API
+transactions or controlled data-import jobs.
+
 ## 9. Local/Docker usage
 
 ```bash
@@ -220,9 +305,16 @@ Relationship behavior:
 - An enrollment can have many attendance records over time.
 - A student cannot be enrolled twice in the same course and semester.
 - Saving attendance for the same student/course/date updates the existing row.
-- Deleting referenced records can be rejected by PostgreSQL until dependent records are removed; soft deletion is preferred for production history.
+- Student deletion removes dependent enrollments and attendance through the service layer before deleting the student; soft deletion is preferred for production history.
 
 The `courses.enrolled` counter is maintained by transactional enrollment services. The frontend also derives the visible course-card count from loaded enrollments and temporarily merges successful enrollment responses so the roster updates immediately.
+
+GPA is derived from graded enrollments and course credits. New students start
+at `0.00`; `In Progress` grades are excluded; and the backend recalculates GPA
+after grade, enrollment, deletion, and startup-reconciliation operations.
+Attendance may be recorded only for an active enrollment. Attendance records
+are unique per student, course, and date, and `Excused` sessions are excluded
+from the attendance-rate denominator.
 
 ## 12. Analytics API
 
@@ -291,9 +383,17 @@ Flyway migrations are stored in `backend/src/main/resources/db/migration`:
 ```text
 V1__tighten_academic_constraints.sql
 V2__require_course_terms.sql
+V3__widen_enrollment_reference_ids.sql
+V4__widen_attendance_reference_ids.sql
 ```
 
-Existing PostgreSQL databases are baselined at version `0`, then upgraded through numbered migrations. H2 test runs disable PostgreSQL-specific Flyway scripts and use JPA test schema creation.
+Existing PostgreSQL databases are baselined at version `0`, then upgraded
+through numbered migrations. The current Docker setup is transitional:
+Flyway applies versioned changes and Hibernate uses `ddl-auto=update` to create
+missing tables. The production target is a complete initial-schema migration
+followed by `ddl-auto=validate`. H2 test runs disable PostgreSQL-specific
+Flyway scripts and use JPA test schema creation; PostgreSQL integration tests
+are still recommended for migration verification.
 
 ## 15. Verification status
 
@@ -301,4 +401,4 @@ Existing PostgreSQL databases are baselined at version `0`, then upgraded throug
 - `npm run build` passes.
 - `./mvnw test` passes.
 - Docker PostgreSQL migrations apply successfully.
-- Live API flows verified for course creation, enrollment, attendance, analytics, and 20-student startup seeding.
+- Live API flows verified for student creation, enrollment, attendance, grade/GPA updates, deletion cascades, analytics, and startup seeding.

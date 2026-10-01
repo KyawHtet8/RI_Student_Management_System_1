@@ -257,7 +257,7 @@ export const StudentList: React.FC<StudentListProps> = ({
               <select
                 id="sort-select"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                 onChange={(e) => setSortBy(e.target.value as 'name' | 'id' | 'gpa' | 'year')}
                 className="bg-transparent font-medium text-neutral-700 focus:outline-hidden cursor-pointer text-xs"
               >
                 <option value="name">Name</option>

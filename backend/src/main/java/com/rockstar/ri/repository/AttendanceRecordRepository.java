@@ -18,4 +18,6 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
 
     List<AttendanceRecord> findByCourseIdAndDateOrderByStudentIdAsc(
             String courseId, String date);
+
+    void deleteByStudentId(String studentId);
 }

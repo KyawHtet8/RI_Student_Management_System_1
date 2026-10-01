@@ -9,6 +9,7 @@ import com.rockstar.ri.repository.CourseRepository;
 import com.rockstar.ri.repository.AttendanceRecordRepository;
 import com.rockstar.ri.repository.EnrollmentRepository;
 import com.rockstar.ri.repository.StudentRepository;
+import com.rockstar.ri.service.EnrollmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -27,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final EnrollmentService enrollmentService;
 
     @Override
     public void run(String... args) {
@@ -133,6 +135,12 @@ public class DataInitializer implements CommandLineRunner {
             ));
             log.info(">>> [ROCKSTAR SIS] Initialized sample attendance successfully!");
         }
+
+        // GPA is derived data. Rebuild it from the current enrollment grades
+        // on startup so seeded and legacy records cannot leave stale values.
+        studentRepository.findAll().forEach(student ->
+                enrollmentService.recalculateStudentGpa(student.getId()));
+        log.info(">>> [ROCKSTAR SIS] Recalculated GPA values from enrollment records");
     }
 
     /**

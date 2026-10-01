@@ -37,7 +37,7 @@ public class AttendanceRecord {
     @Column(length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "student_id", length = 36, nullable = false, updatable = false)
+    @Column(name = "student_id", length = 64, nullable = false, updatable = false)
     private String studentId;
 
     @JsonIgnore
@@ -46,7 +46,7 @@ public class AttendanceRecord {
             updatable = false, foreignKey = @jakarta.persistence.ForeignKey(name = "fk_attendance_student"))
     private Student student;
 
-    @Column(name = "course_id", length = 36, nullable = false, updatable = false)
+    @Column(name = "course_id", length = 64, nullable = false, updatable = false)
     private String courseId;
 
     @JsonIgnore

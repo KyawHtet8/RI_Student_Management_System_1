@@ -1,6 +1,6 @@
 # 🐳 Docker Deployment Guide for Student Management System Frontend
 
-This guide explains how to build, run, and test the production-ready Docker container for the Student Management System React frontend.
+This guide explains how to build, run, and test the production-style Docker container for the Student Management System React frontend. The complete MVP stack, including PostgreSQL migrations and the Spring Boot backend, is started with Docker Compose as described below.
 
 ---
 

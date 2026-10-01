@@ -92,7 +92,10 @@ public class AttendanceService {
         long absent = count(records, AttendanceStatus.Absent);
         long excused = count(records, AttendanceStatus.Excused);
         long total = records.size();
-        double rate = total == 0 ? 0.0 : round(((present + late) * 100.0) / total);
+        // Excused sessions are excluded from the denominator. They should not
+        // reduce a student's attendance rate.
+        long countedSessions = present + late + absent;
+        double rate = countedSessions == 0 ? 0.0 : round(((present + late) * 100.0) / countedSessions);
 
         return AttendanceStatistics.builder()
                 .studentId(normalizedStudentId)
@@ -109,7 +112,7 @@ public class AttendanceService {
     private String verifyEnrollment(String studentId, String courseId) {
         String normalized = requireText(studentId, "Student ID is required");
         requireStudent(normalized);
-        if (!enrollmentRepository.existsByStudentIdAndCourseId(normalized, courseId)) {
+        if (!enrollmentRepository.existsByStudentIdAndCourseIdAndStatus(normalized, courseId, "Enrolled")) {
             throw new IllegalStateException("Student is not enrolled in this course");
         }
         return normalized;

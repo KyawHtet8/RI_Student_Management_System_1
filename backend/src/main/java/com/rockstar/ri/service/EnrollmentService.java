@@ -93,6 +93,9 @@ public class EnrollmentService {
                 .build();
         try {
             Enrollment saved = enrollmentRepository.save(enrollment);
+            // Keep the cached Student.gpa correct even if this student had
+            // stale legacy data before this enrollment was created.
+            recalculateStudentGpa(studentId);
             log.info("Enrolled student {} in course {}", studentId, course.getId());
             return saved;
         } catch (DataIntegrityViolationException exception) {
@@ -168,6 +171,8 @@ public class EnrollmentService {
             courseRepository.save(course);
         }
         enrollmentRepository.delete(enrollment);
+        enrollmentRepository.flush();
+        recalculateStudentGpa(enrollment.getStudentId());
         log.info("Deleted enrollment {}", id);
     }
 

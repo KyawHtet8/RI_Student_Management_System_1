@@ -32,7 +32,8 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     major: 'Computer Science',
     year: 'Freshman',
     status: 'Active',
-    gpa: 3.5,
+    // GPA is calculated from graded course enrollments, not entered here.
+    gpa: 0.0,
     advisor: 'Dr. Alan Turing',
     enrollmentDate: new Date().toISOString().slice(0, 10),
     expectedGraduation: '2029-06-15',
@@ -72,7 +73,8 @@ export const StudentModal: React.FC<StudentModalProps> = ({
         major: 'Computer Science',
         year: 'Freshman',
         status: 'Active',
-        gpa: 3.5,
+         // GPA is calculated from graded course enrollments, not entered here.
+         gpa: 0.0,
         advisor: 'Dr. Alan Turing',
         enrollmentDate: new Date().toISOString().slice(0, 10),
         expectedGraduation: '2029-06-15',
@@ -222,7 +224,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 <label className="block font-medium text-neutral-700 mb-1">Gender</label>
                 <select
                   value={formData.gender || 'Female'}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+                   onChange={(e) => setFormData({ ...formData, gender: e.target.value as Student['gender'] })}
                   className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-hidden focus:bg-white focus:border-indigo-500 cursor-pointer min-h-[38px]"
                 >
                   <option value="Female">Female</option>

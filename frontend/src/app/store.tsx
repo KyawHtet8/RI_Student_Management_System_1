@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Student, Course, Enrollment, AttendanceEntry, ActivityLog, ViewTab, LetterGrade, StudentStatus } from '../types';
+import { Student, Course, Enrollment, AttendanceEntry, ActivityLog, ViewTab, LetterGrade, StudentStatus, AttendanceStatus, EnrollmentStatus } from '../types';
 import { INITIAL_STUDENTS, INITIAL_COURSES, INITIAL_ENROLLMENTS, INITIAL_ATTENDANCE } from '../data/mockData';
 import { studentApi } from '../features/students/api/studentApi';
 import { courseApi } from '../features/courses/api/courseApi';
@@ -37,7 +37,7 @@ interface AppStoreContextType {
   dropCourseEnrollment: (enrollmentId: string) => Promise<void>;
 
   // Attendance Actions
-  saveAttendanceSheet: (date: string, courseId: string, entries: { studentId: string; status: any; remarks?: string }[]) => Promise<void>;
+  saveAttendanceSheet: (date: string, courseId: string, entries: { studentId: string; status: AttendanceStatus; remarks?: string }[]) => Promise<void>;
 
   // System
   addLog: (title: string, details: string, type?: ActivityLog['type']) => void;
@@ -49,32 +49,57 @@ interface AppStoreContextType {
 
 const AppStoreContext = createContext<AppStoreContextType | null>(null);
 
-const normalizeStudent = (student: Partial<Student>, fallback?: Student): Student => ({
+type StudentApiPayload = Partial<Student> & { avatarUrl?: string };
+
+const normalizeStudent = (student: StudentApiPayload, fallback?: Student): Student => ({
   ...(fallback || INITIAL_STUDENTS[0]),
   ...student,
   phone: student.phone ?? fallback?.phone ?? '',
-  avatar: student.avatar ?? (student as any).avatarUrl ?? fallback?.avatar,
+  avatar: student.avatar ?? student.avatarUrl ?? fallback?.avatar,
   address: student.address ?? fallback?.address ?? { street: '', city: '', state: '', zip: '' },
   emergencyContact: student.emergencyContact ?? fallback?.emergencyContact ?? { name: '', relationship: '', phone: '' },
   notes: student.notes ?? fallback?.notes ?? [],
 });
 
-const normalizeEnrollment = (enrollment: any): Enrollment => ({
-  id: enrollment.id,
-  studentId: enrollment.studentId,
-  courseId: enrollment.courseId,
+type ApiEnrollment = {
+  id?: string;
+  studentId?: string;
+  courseId?: string;
+  semester?: string;
+  term?: string;
+  status?: EnrollmentStatus;
+  grade?: LetterGrade;
+  attendanceRate?: number;
+  enrolledAt?: string;
+  enrollmentDate?: string;
+};
+
+const normalizeEnrollment = (enrollment: ApiEnrollment): Enrollment => ({
+  id: enrollment.id || '',
+  studentId: enrollment.studentId || '',
+  courseId: enrollment.courseId || '',
   semester: enrollment.semester || enrollment.term || '',
+  status: enrollment.status || 'Enrolled',
   grade: enrollment.grade || 'In Progress',
   attendanceRate: enrollment.attendanceRate ?? 0,
   enrolledAt: enrollment.enrolledAt || enrollment.enrollmentDate || '',
 });
 
-const normalizeAttendance = (record: any): AttendanceEntry => ({
-  id: record.id,
-  date: record.date,
-  courseId: record.courseId,
-  studentId: record.studentId,
-  status: record.status,
+type ApiAttendance = {
+  id?: string;
+  date?: string;
+  courseId?: string;
+  studentId?: string;
+  status?: AttendanceStatus;
+  remarks?: string;
+};
+
+const normalizeAttendance = (record: ApiAttendance): AttendanceEntry => ({
+  id: record.id || '',
+  date: record.date || '',
+  courseId: record.courseId || '',
+  studentId: record.studentId || '',
+  status: record.status || 'Absent',
   remarks: record.remarks,
 });
 
@@ -314,6 +339,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const batchDeleteStudents = async (ids: string[]) => {
+    try {
+      await Promise.all(ids.map((id) => studentApi.deleteStudent(id)));
+      setServerConnected(true);
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error;
+      // Offline demo fallback: the backend was unreachable.
+    }
     setStudents((prev) => prev.filter((s) => !ids.includes(s.id)));
     setEnrollments((prev) => prev.filter((e) => !ids.includes(e.studentId)));
     setAttendance((prev) => prev.filter((a) => !ids.includes(a.studentId)));
@@ -443,7 +475,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const saveAttendanceSheet = async (
     date: string,
     courseId: string,
-    entries: { studentId: string; status: any; remarks?: string }[]
+    entries: { studentId: string; status: AttendanceStatus; remarks?: string }[]
   ) => {
     try {
       const saved = await attendanceApi.saveAttendanceSheet({ date, courseId, records: entries });

@@ -21,7 +21,7 @@ interface SettingsViewProps {
   logs?: ActivityLog[];
   onExportCSV?: () => void;
   onExportJSON?: () => void;
-  onImportJSON?: (data: any) => void;
+  onImportJSON?: (data: unknown) => void;
   onResetData?: () => void;
   onImportStudents?: () => void;
   onExportData?: () => void;

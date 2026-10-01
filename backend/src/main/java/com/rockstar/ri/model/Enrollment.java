@@ -37,10 +37,12 @@ public class Enrollment {
     @Column(length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Column(name = "student_id", length = 36, nullable = false, updatable = false)
+    // Student IDs are generated as "std-" + UUID, which is 40 characters.
+    // Keep the foreign-key column wide enough for generated and legacy IDs.
+    @Column(name = "student_id", length = 64, nullable = false, updatable = false)
     private String studentId;
 
-    @Column(name = "course_id", length = 36, nullable = false, updatable = false)
+    @Column(name = "course_id", length = 64, nullable = false, updatable = false)
     private String courseId;
 
     @JsonIgnore

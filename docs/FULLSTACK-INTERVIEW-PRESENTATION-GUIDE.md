@@ -33,7 +33,7 @@ The project uses a modular monolith: one frontend and one backend, with business
 - `components/`: reusable visual components and feature views
 - `services/apiClient.ts`: shared HTTP and authentication handling
 
-The components handle display and user interaction. The application store handles server state, mutations, local demo fallback, activity logs, and synchronization.
+The components handle display and user interaction. The application store handles server state, mutations, activity logs, and synchronization. Local fallback data is a demo/offline capability, not the production source of truth.
 
 Example flow:
 
@@ -79,12 +79,16 @@ Examples:
 - A student cannot enroll twice in the same course and semester.
 - Attendance can only be recorded for an enrolled student.
 - A grade update recalculates GPA.
+- GPA is derived from graded enrollments and course credits; new students start at `0.00`.
 
 ### Repository
 
 Repositories provide database access using Spring Data JPA. They contain queries and persistence operations, while services decide when those operations are allowed.
 
 ## 5. Database domain
+
+For the complete table-by-table relationship and lifecycle reference, see
+[`DATABASE-RELATIONSHIPS.md`](DATABASE-RELATIONSHIPS.md).
 
 ```text
 students 1 ────────< enrollments >──────── 1 courses
@@ -176,7 +180,7 @@ Course roster
   → return updated enrollment
 ```
 
-The grade belongs to the enrollment, while the calculated GPA is stored on the student profile for quick display.
+The grade belongs to the enrollment, while the calculated GPA is stored on the student profile for quick display. `In Progress` grades are excluded from GPA. The backend also recalculates GPA after enrollment deletion and during startup reconciliation; the frontend displays the backend value and uses local calculation only to keep the UI responsive during a mutation.
 
 ## 9. Analytics domain
 
@@ -236,7 +240,7 @@ Transactions are important for:
 
 ## 12. DTOs and API contracts
 
-DTOs separate the public API contract from JPA entities.
+The API has request DTOs for validation, while some current MVP responses still expose JPA entities directly. A production hardening step is to add response DTOs consistently.
 
 Benefits:
 
@@ -254,7 +258,7 @@ Example request:
 }
 ```
 
-## 13. Flyway and database migrations
+## 13. Flyway, JPA, and database migrations
 
 Flyway manages versioned database changes.
 
@@ -262,6 +266,8 @@ Flyway manages versioned database changes.
 backend/src/main/resources/db/migration/
   V1__tighten_academic_constraints.sql
   V2__require_course_terms.sql
+  V3__widen_enrollment_reference_ids.sql
+  V4__widen_attendance_reference_ids.sql
 ```
 
 Startup sequence:
@@ -271,20 +277,28 @@ Start backend
   → read flyway_schema_history
   → run missing migrations
   → record migration versions
-  → initialize JPA
+  → initialize JPA/Hibernate
+  → run demo data initialization
 ```
 
-The final production configuration should use:
+The current Docker MVP uses `ddl-auto=update` as a transitional fallback for
+creating missing tables. The target production configuration should use:
 
 ```properties
 spring.jpa.hibernate.ddl-auto=validate
 ```
 
-Then Flyway owns schema changes and Hibernate only validates mappings.
+Before switching to `validate`, a complete initial-schema migration must be
+tested against both a clean database and the existing database. After that
+transition, Flyway owns schema changes and Hibernate only validates mappings.
+Never edit an applied migration; add a new version instead.
 
 ## 14. Startup demo data
 
-`DataInitializer` preserves existing records and ensures the database has at least 20 students.
+`DataInitializer` preserves existing records and ensures the development
+database has at least 20 students. It is demo-data initialization, not schema
+management, and should be enabled only in a development/demo profile before
+production.
 
 Important behavior:
 

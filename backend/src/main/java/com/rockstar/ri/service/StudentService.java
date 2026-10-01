@@ -3,6 +3,7 @@ package com.rockstar.ri.service;
 import com.rockstar.ri.model.Student;
 import com.rockstar.ri.exception.ResourceNotFoundException;
 import com.rockstar.ri.repository.StudentRepository;
+import com.rockstar.ri.repository.AttendanceRecordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,8 @@ public class StudentService {
     private static final Set<String> STUDENT_STATUSES = Set.of("Active", "On Leave", "Graduated", "Suspended");
 
     private final StudentRepository repository;
+    private final EnrollmentService enrollmentService;
+    private final AttendanceRecordRepository attendanceRecordRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
     // ၁။ ကျောင်းသားအားလုံး ရယူခြင်း (Department filter ပါဝင်သည်)
@@ -58,6 +61,10 @@ public class StudentService {
             throw new IllegalArgumentException("Student email already exists: " + student.getEmail());
         }
 
+        // GPA is derived from graded enrollments. A new student has no
+        // academic results yet, so never accept a manually supplied GPA.
+        student.setGpa(0.0);
+
         log.info("Successfully registered student: {} {} with Card ID: {}", 
                 student.getFirstName(), student.getLastName(), student.getStudentId());
         
@@ -83,7 +90,7 @@ public class StudentService {
         if (updated.getMajor() != null) existing.setMajor(updated.getMajor());
         if (updated.getDepartment() != null) existing.setDepartment(updated.getDepartment());
         if (updated.getYear() != null) existing.setYear(updated.getYear());
-        if (updated.getGpa() != null) existing.setGpa(updated.getGpa());
+        // GPA is derived from enrollments and must not be edited as profile data.
         if (updated.getStatus() != null) existing.setStatus(updated.getStatus());
         if (updated.getTuitionStatus() != null) existing.setTuitionStatus(updated.getTuitionStatus());
         if (updated.getAdvisor() != null) existing.setAdvisor(updated.getAdvisor());
@@ -103,6 +110,12 @@ public class StudentService {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("Cannot delete: Student not found with ID: " + id);
         }
+
+        // Remove dependent records before deleting the parent student. The
+        // database foreign keys intentionally prevent a direct parent delete.
+        enrollmentService.getByStudent(id).forEach(enrollment ->
+                enrollmentService.deleteEnrollment(enrollment.getId()));
+        attendanceRecordRepository.deleteByStudentId(id);
         log.warn("Deleted student with ID: {}", id);
         repository.deleteById(id);
     }

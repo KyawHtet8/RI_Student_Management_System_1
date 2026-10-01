@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, String> {
 
-    boolean existsByStudentIdAndCourseId(String studentId, String courseId);
+    boolean existsByStudentIdAndCourseIdAndStatus(String studentId, String courseId, String status);
 
     boolean existsByStudentIdAndCourseIdAndSemester(String studentId, String courseId, String semester);
 

@@ -8,6 +8,8 @@ export type AttendanceStatus = 'Present' | 'Late' | 'Absent' | 'Excused';
 
 export type LetterGrade = 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'F' | 'In Progress';
 
+export type EnrollmentStatus = 'Enrolled' | 'Completed' | 'Dropped' | 'Waitlisted';
+
 export interface Student {
   id: string;
   studentId: string; // e.g. "STU-2026-001"
@@ -60,6 +62,8 @@ export interface Enrollment {
   studentId: string;
   courseId: string;
   semester: string;
+  /** Backend always returns this; optional for legacy local demo records. */
+  status?: EnrollmentStatus;
   grade: LetterGrade;
   attendanceRate: number; // 0-100%
   enrolledAt: string;
