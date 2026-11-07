@@ -36,24 +36,24 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header id="app-header" className="bg-white/85 backdrop-blur-xl border-b border-neutral-200/80 sticky top-0 z-30 shadow-[0_4px_24px_rgba(31,41,55,0.04)]">
+    <header id="app-header" className="bg-[#111827] border-b border-slate-700/70 sticky top-0 z-30 shadow-[0_8px_28px_rgba(15,23,42,0.18)]">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
           
           {/* Logo & System Brand */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-max">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[13px] bg-gradient-to-br from-indigo-600 to-violet-700 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-200" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[13px] bg-gradient-to-br from-cyan-400 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="brand-display font-bold tracking-tight text-neutral-900 text-base sm:text-lg">NextSMS</span>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-                  CAMPUS · 2.6
+                <span className="brand-display font-bold tracking-tight text-white text-base sm:text-lg">NextSMS</span>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-cyan-200 border border-white/10">
+                  SMS · ADMIN
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-neutral-500 font-medium hidden md:block">
-                University Student Information System
+               <p className="text-[11px] sm:text-xs text-slate-400 font-medium hidden md:block">
+                 Student management system
               </p>
             </div>
           </div>
@@ -61,8 +61,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right Actions */}
           <div className="flex items-center gap-1 sm:gap-2.5">
             {/* Term Badge */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-neutral-100 rounded-lg text-xs font-medium text-neutral-700">
-              <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+              <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 rounded-lg text-xs font-medium text-slate-200 border border-white/10">
+              <Calendar className="w-3.5 h-3.5 text-cyan-300" />
               <span>{activeTerm || 'Fall 2026 Term'}</span>
             </div>
 
@@ -72,9 +72,9 @@ export const Header: React.FC<HeaderProps> = ({
                 id="header-export-btn"
                 onClick={onExportCSV}
                 title="Export roster to CSV"
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-neutral-700 bg-white border border-neutral-200 hover:bg-neutral-50 rounded-lg transition-colors cursor-pointer"
+                 className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-200 bg-white/10 border border-white/10 hover:bg-white/15 rounded-lg transition-colors cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-neutral-500" />
+                 <Download className="w-3.5 h-3.5 text-cyan-300" />
                 <span className="hidden md:inline">Export CSV</span>
                 <span className="md:hidden">CSV</span>
               </button>
@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
                 id="header-logs-btn"
                 onClick={() => setShowLogs(!showLogs)}
                 title="System Activity Logs"
-                className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg relative transition-colors cursor-pointer"
+                 className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg relative transition-colors cursor-pointer"
                 aria-label="View activity logs"
               >
                 <History className="w-4 h-4" />
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-add-student-btn"
               onClick={handleEnroll}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-indigo-600/20 hover:shadow-lg cursor-pointer shrink-0"
+                 className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 bg-cyan-400 hover:bg-cyan-300 active:bg-cyan-500 text-slate-950 rounded-lg text-xs font-bold transition-all shadow-md shadow-cyan-500/20 hover:shadow-lg cursor-pointer shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Enroll Student</span>

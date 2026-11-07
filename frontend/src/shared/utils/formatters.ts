@@ -1,4 +1,4 @@
-import { LetterGrade } from '../../types';
+import { EnrollmentStatus, LetterGrade } from '../../types';
 
 export const GRADE_POINTS: Record<LetterGrade, number> = {
   'A': 4.0,
@@ -18,12 +18,12 @@ export const GRADE_POINTS: Record<LetterGrade, number> = {
 /**
  * Calculates cumulative GPA based on enrolled courses and grades.
  */
-export function calculateGPA(grades: { grade: LetterGrade; credits?: number }[]): number {
+export function calculateGPA(grades: { grade: LetterGrade; credits?: number; status?: EnrollmentStatus }[]): number {
   let totalPoints = 0;
   let totalCredits = 0;
 
-  grades.forEach(({ grade, credits = 3 }) => {
-    if (grade !== 'In Progress' && GRADE_POINTS[grade] !== undefined) {
+  grades.forEach(({ grade, credits = 3, status }) => {
+    if ((!status || status === 'Completed') && grade !== 'In Progress' && GRADE_POINTS[grade] !== undefined) {
       totalPoints += GRADE_POINTS[grade] * credits;
       totalCredits += credits;
     }

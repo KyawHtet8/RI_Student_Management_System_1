@@ -58,6 +58,16 @@ The Compose file is at the project root and builds the frontend from
 
 ## ⚙️ Architecture & Features
 
+The dashboard is responsive across desktop, tablet, and mobile screens. Desktop
+users get a persistent sidebar for Students, Courses, Attendance, Analytics, and
+System functions; smaller screens use a compact horizontal navigation.
+
+Academic records are preserved through the student lifecycle. Removing a student
+from active operations archives the record instead of deleting enrollments,
+grades, attendance, or notes. Only active students can be enrolled, dropped
+enrollments remain in history, and GPA is calculated from completed courses with
+final grades.
+
 - **Multi-Stage Build:**
   - **Stage 1 (Node 20 Alpine):** Installs packages and runs `npm run build` with Vite.
   - **Stage 2 (Nginx 1.27 Alpine):** Only packages the compiled static assets into an ultra-lean (<30MB) Nginx container.

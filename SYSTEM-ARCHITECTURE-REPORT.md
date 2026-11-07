@@ -60,7 +60,7 @@ AuthProvider/AuthGate
   → Spring Boot API
 ```
 
-The application store coordinates students, courses, enrollments, attendance, activity logs, and local persistence. The Academic Record is the main student workflow and combines overview, courses/grades, attendance, and advising notes.
+The application store coordinates students, courses, enrollments, attendance, activity logs, and local persistence. The Academic Record is the main student workflow and combines overview, courses/grades, attendance, and advising notes. The dashboard uses a persistent sidebar on desktop and a compact horizontal navigation on smaller screens.
 
 Search is intentionally located inside the Students and Courses views rather than the top navigation. Course creation can optionally select multiple existing students; the frontend creates the course, enrolls selected students through the enrollment API, and immediately reflects successful enrollment responses in the visible roster.
 
@@ -100,7 +100,7 @@ http://localhost:8080/api/v1
 | GET | `/students/{id}` | Get one student |
 | POST | `/students` | Create student |
 | PUT | `/students/{id}` | Update student |
-| DELETE | `/students/{id}` | Delete/archive student |
+| DELETE | `/students/{id}` | Archive student while preserving academic history |
 | POST | `/students/batch-status` | Update multiple student statuses |
 
 ### Courses
@@ -305,13 +305,14 @@ Relationship behavior:
 - An enrollment can have many attendance records over time.
 - A student cannot be enrolled twice in the same course and semester.
 - Saving attendance for the same student/course/date updates the existing row.
-- Student deletion removes dependent enrollments and attendance through the service layer before deleting the student; soft deletion is preferred for production history.
+- Student removal is an archive operation: the student status becomes `Archived` while enrollments, grades, attendance, and notes remain available for academic history.
 
 The `courses.enrolled` counter is maintained by transactional enrollment services. The frontend also derives the visible course-card count from loaded enrollments and temporarily merges successful enrollment responses so the roster updates immediately.
 
-GPA is derived from graded enrollments and course credits. New students start
-at `0.00`; `In Progress` grades are excluded; and the backend recalculates GPA
-after grade, enrollment, deletion, and startup-reconciliation operations.
+GPA is derived from completed enrollments and course credits. New students start
+at `0.00`; `In Progress`, dropped, waitlisted, and ungraded enrollments are
+excluded; and the backend recalculates GPA after grade, enrollment, archive,
+and startup-reconciliation operations.
 Attendance may be recorded only for an active enrollment. Attendance records
 are unique per student, course, and date, and `Excused` sessions are excluded
 from the attendance-rate denominator.
@@ -347,7 +348,7 @@ The backend is authoritative when available. The frontend keeps local calculatio
 Course UI
   → AppStore.enrollStudentInCourse
   → POST /api/v1/enrollments/courses/{courseId}/enroll
-  → validate student, course, semester, capacity, and uniqueness
+  → validate active student, course, semester, capacity, and uniqueness
   → insert enrollment and update course counter
   → return enrollment
   → update React store and visible roster
@@ -369,7 +370,7 @@ Attendance UI
 ```text
 Course roster
   → PUT /api/v1/enrollments/{id}/grade
-  → update enrollment grade
+  → update enrollment grade and completion status when applicable
   → recalculate weighted student GPA
   → return updated enrollment
 ```
@@ -401,4 +402,4 @@ are still recommended for migration verification.
 - `npm run build` passes.
 - `./mvnw test` passes.
 - Docker PostgreSQL migrations apply successfully.
-- Live API flows verified for student creation, enrollment, attendance, grade/GPA updates, deletion cascades, analytics, and startup seeding.
+- Live API flows verified for student creation/archive, active-student enrollment, attendance, grade/GPA updates, enrollment history, analytics, and startup seeding.

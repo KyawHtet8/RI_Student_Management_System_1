@@ -79,7 +79,7 @@ Examples:
 - A student cannot enroll twice in the same course and semester.
 - Attendance can only be recorded for an enrolled student.
 - A grade update recalculates GPA.
-- GPA is derived from graded enrollments and course credits; new students start at `0.00`.
+- GPA is derived from completed enrollments with final grades and course credits; new students start at `0.00`.
 
 ### Repository
 
@@ -390,7 +390,7 @@ Login
 
 ### What would you improve for production?
 
-> I would add persistent role-based authentication, audit logs, complete response DTO mapping, automated integration and browser tests, soft deletion, rate limiting, observability, encrypted backups, and production migrations with Hibernate validation only.
+> I would add persistent role-based authentication, deeper audit logs, complete response DTO mapping, automated integration and browser tests, rate limiting, observability, encrypted backups, and production migrations with Hibernate validation only.
 
 ## 18. Honest project positioning
 

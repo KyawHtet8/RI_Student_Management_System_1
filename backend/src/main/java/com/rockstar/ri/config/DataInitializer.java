@@ -96,7 +96,7 @@ public class DataInitializer implements CommandLineRunner {
                             .studentId("std-001")
                             .courseId("crs-001")
                             .enrollmentDate(LocalDate.now().minusMonths(2).toString())
-                            .status("Enrolled")
+                            .status("Completed")
                             .grade("A-")
                             .semester("Fall 2026")
                             .build(),
@@ -105,7 +105,7 @@ public class DataInitializer implements CommandLineRunner {
                             .studentId("std-001")
                             .courseId("crs-002")
                             .enrollmentDate(LocalDate.now().minusMonths(2).toString())
-                            .status("Enrolled")
+                            .status("Completed")
                             .grade("B+")
                             .semester("Fall 2026")
                             .build(),
@@ -114,7 +114,7 @@ public class DataInitializer implements CommandLineRunner {
                             .studentId("std-002")
                             .courseId("crs-003")
                             .enrollmentDate(LocalDate.now().minusMonths(2).toString())
-                            .status("Enrolled")
+                            .status("Completed")
                             .grade("A")
                             .semester("Fall 2026")
                             .build()

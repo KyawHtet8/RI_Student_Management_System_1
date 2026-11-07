@@ -69,6 +69,11 @@ public class EnrollmentService {
     @Transactional
     public Enrollment enrollStudent(String courseIdentifier, EnrollStudentRequest request) {
         String studentId = requireStudent(request.getStudentId());
+        var student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        if (!"Active".equalsIgnoreCase(student.getStatus())) {
+            throw new IllegalStateException("Only active students can be enrolled in courses");
+        }
         Course course = resolveCourse(courseIdentifier);
 
         if (enrollmentRepository.existsByStudentIdAndCourseIdAndSemester(
@@ -143,6 +148,9 @@ public class EnrollmentService {
         int totalCredits = 0;
 
         for (Enrollment enrollment : enrollments) {
+            if (!COMPLETED.equals(enrollment.getStatus())) {
+                continue;
+            }
             Double gradePoints = enrollment.getGrade() == null
                     ? null : GRADE_POINTS.get(enrollment.getGrade());
             if (gradePoints == null) {

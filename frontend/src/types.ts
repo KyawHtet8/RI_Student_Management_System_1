@@ -1,6 +1,6 @@
 export type AcademicYear = 'Freshman' | 'Sophomore' | 'Junior' | 'Senior' | 'Graduate';
 
-export type StudentStatus = 'Active' | 'On Leave' | 'Graduated' | 'Suspended';
+export type StudentStatus = 'Active' | 'On Leave' | 'Graduated' | 'Suspended' | 'Archived';
 
 export type TuitionStatus = 'Paid' | 'Partial' | 'Overdue';
 

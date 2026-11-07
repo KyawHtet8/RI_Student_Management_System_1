@@ -150,14 +150,29 @@ export const StudentList: React.FC<StudentListProps> = ({
         return 'bg-blue-50 text-blue-700 border-blue-200/80';
       case 'Suspended':
         return 'bg-rose-50 text-rose-700 border-rose-200/80';
+      case 'Archived':
+        return 'bg-slate-100 text-slate-500 border-slate-200/80';
     }
   };
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-5 sm:px-7 sm:py-6 text-white shadow-xl shadow-slate-900/10">
+        <div className="relative z-10 max-w-2xl">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300">SMS operations overview</p>
+          <h1 className="brand-display text-xl font-bold tracking-tight sm:text-2xl">Student management dashboard</h1>
+          <p className="mt-1.5 max-w-xl text-xs leading-5 text-slate-300 sm:text-sm">Keep your student records organized, current, and ready for the next academic decision.</p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold">
+            <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-emerald-200">● Live roster</span>
+            <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-slate-300">Academic records</span>
+          </div>
+        </div>
+        <div className="absolute -right-10 -top-20 h-56 w-56 rounded-full border-[24px] border-cyan-400/10" />
+        <div className="absolute -bottom-24 right-24 h-48 w-48 rounded-full border-[18px] border-indigo-400/10" />
+      </section>
       {/* High-Level Roster Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="bg-white p-3 sm:p-4 rounded-xl border border-neutral-200 shadow-2xs flex items-center gap-2.5 sm:gap-3.5">
+        <div className="dashboard-card bg-white p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3.5 transition-shadow">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-700 shrink-0">
             <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
@@ -167,7 +182,7 @@ export const StudentList: React.FC<StudentListProps> = ({
           </div>
         </div>
 
-        <div className="bg-white p-3 sm:p-4 rounded-xl border border-neutral-200 shadow-2xs flex items-center gap-2.5 sm:gap-3.5">
+        <div className="dashboard-card bg-white p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3.5 transition-shadow">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
@@ -177,7 +192,7 @@ export const StudentList: React.FC<StudentListProps> = ({
           </div>
         </div>
 
-        <div className="bg-white p-3 sm:p-4 rounded-xl border border-neutral-200 shadow-2xs flex items-center gap-2.5 sm:gap-3.5">
+        <div className="dashboard-card bg-white p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3.5 transition-shadow">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
@@ -187,7 +202,7 @@ export const StudentList: React.FC<StudentListProps> = ({
           </div>
         </div>
 
-        <div className="bg-white p-3 sm:p-4 rounded-xl border border-neutral-200 shadow-2xs flex items-center gap-2.5 sm:gap-3.5">
+        <div className="dashboard-card bg-white p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3.5 transition-shadow">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
             <Award className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
@@ -326,6 +341,7 @@ export const StudentList: React.FC<StudentListProps> = ({
               <option value="On Leave">On Leave</option>
               <option value="Graduated">Graduated</option>
               <option value="Suspended">Suspended</option>
+              <option value="Archived">Archived</option>
             </select>
 
             {/* Standing Filter */}
@@ -553,7 +569,7 @@ export const StudentList: React.FC<StudentListProps> = ({
                             id={`btn-delete-${student.id}`}
                             onClick={() => setDeleteConfirmId(student.id)}
                             className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                            title="Delete Student"
+                             title="Archive Student"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -659,7 +675,7 @@ export const StudentList: React.FC<StudentListProps> = ({
                     <button
                       onClick={() => setDeleteConfirmId(student.id)}
                       className="p-1.5 sm:p-2 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                      title="Delete"
+                       title="Archive"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -678,9 +694,9 @@ export const StudentList: React.FC<StudentListProps> = ({
             <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
               <AlertCircle className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-neutral-900">Remove Student Record?</h4>
+             <h4 className="text-base font-bold text-neutral-900">Archive Student Record?</h4>
             <p className="text-xs text-neutral-500 mt-1">
-              Are you sure you want to remove this student? All associated enrollment records and grades will be cleared from the active register.
+               The student will be archived and removed from active operations. Academic history, enrollments, grades, and attendance will be preserved.
             </p>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
@@ -696,7 +712,7 @@ export const StudentList: React.FC<StudentListProps> = ({
                 }}
                 className="px-3.5 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg cursor-pointer"
               >
-                Confirm Delete
+                 Confirm Archive
               </button>
             </div>
           </div>

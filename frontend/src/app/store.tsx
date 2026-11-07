@@ -238,7 +238,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Recalculate course enrolled count
   const updatedCourses = courses.map((course) => {
-    const count = enrollments.filter((e) => e.courseId === course.id).length;
+    const count = enrollments.filter((e) => e.courseId === course.id && (e.status ?? 'Enrolled') === 'Enrolled').length;
     return { ...course, enrolledCount: enrollments.length > 0 ? count : course.enrolledCount };
   });
 
@@ -314,10 +314,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Offline demo fallback: the backend was unreachable.
     }
 
-    setStudents((prev) => prev.filter((s) => s.id !== id));
-    setEnrollments((prev) => prev.filter((e) => e.studentId !== id));
-    setAttendance((prev) => prev.filter((a) => a.studentId !== id));
-    addLog('Record Archived', `Removed student ${student?.firstName} ${student?.lastName} (${student?.studentId})`, 'delete');
+    setStudents((prev) => prev.map((s) => s.id === id ? { ...s, status: 'Archived' } : s));
+    addLog('Record Archived', `Archived student ${student?.firstName} ${student?.lastName} (${student?.studentId})`, 'update');
   };
 
   const batchUpdateStudentStatus = async (ids: string[], status: StudentStatus) => {
@@ -346,10 +344,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!isNetworkFailure(error)) throw error;
       // Offline demo fallback: the backend was unreachable.
     }
-    setStudents((prev) => prev.filter((s) => !ids.includes(s.id)));
-    setEnrollments((prev) => prev.filter((e) => !ids.includes(e.studentId)));
-    setAttendance((prev) => prev.filter((a) => !ids.includes(a.studentId)));
-    addLog('Batch Deletion', `Archived ${ids.length} student academic records from registry`, 'delete');
+    setStudents((prev) => prev.map((s) => ids.includes(s.id) ? { ...s, status: 'Archived' } : s));
+    addLog('Batch Archive', `Archived ${ids.length} student academic records`, 'update');
   };
 
   // Course Actions
@@ -376,6 +372,10 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const enrollStudentInCourse = async (studentId: string, courseId: string) => {
+    const enrollingStudent = students.find((item) => item.id === studentId);
+    if (enrollingStudent && enrollingStudent.status !== 'Active') {
+      throw new Error('Only active students can be enrolled in courses.');
+    }
     const alreadyEnrolled = enrollments.some((e) => e.studentId === studentId && e.courseId === courseId);
     if (alreadyEnrolled) return;
 
@@ -456,12 +456,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     const target = enrollments.find((e) => e.id === enrollmentId);
-    setEnrollments((prev) => prev.filter((e) => e.id !== enrollmentId));
+    // Keep dropped registrations for the transcript and audit trail. They no
+    // longer count toward capacity, but should not disappear from history.
+    setEnrollments((prev) => prev.map((e) => e.id === enrollmentId ? { ...e, status: 'Dropped' } : e));
 
     if (target) {
-      const remainingEnrollments = enrollments.filter(
-        (e) => e.studentId === target.studentId && e.id !== enrollmentId
-      );
+      const remainingEnrollments = enrollments
+        .filter((e) => e.studentId === target.studentId && e.id !== enrollmentId)
+        .map((e) => ({ ...e, status: e.status ?? 'Enrolled' }));
       const newGPA = calculateGPA(remainingEnrollments
         .map((e) => ({ ...e, credits: courses.find((course) => course.id === e.courseId)?.credits ?? 0 })));
       setStudents((prev) =>

@@ -71,9 +71,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav id="app-navigation" className="bg-white/75 backdrop-blur-xl border-b border-neutral-200/80 sticky top-14 sm:top-16 z-20 shadow-[0_4px_16px_rgba(31,41,55,0.03)]">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex space-x-1 sm:space-x-3 overflow-x-auto no-scrollbar py-1.5 sm:py-2 -mx-1 px-1">
+    <nav id="app-navigation" className="bg-white/95 backdrop-blur-xl border-b border-slate-200 md:border-b-0 md:border-r sticky top-14 sm:top-16 md:top-[6.5rem] z-20 shadow-[0_4px_16px_rgba(31,41,55,0.04)] md:w-64 md:shrink-0 md:h-[calc(100vh-6.5rem)]">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-4 lg:px-5 md:h-full">
+        <div className="flex space-x-1 sm:space-x-3 md:space-x-0 md:flex-col md:gap-2 overflow-x-auto no-scrollbar py-1.5 sm:py-2 md:py-6 -mx-1 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -82,13 +82,13 @@ export const Navigation: React.FC<NavigationProps> = ({
                 key={item.id}
                 id={`nav-tab-${item.id}`}
                 onClick={() => handleTabSelect(item.id)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[40px] ${
+                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 md:px-3 py-2.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[40px] md:w-full md:justify-start ${
                   isActive
-                    ? 'bg-[#20243a] text-white shadow-md shadow-slate-900/10'
-                    : 'text-neutral-600 hover:text-indigo-700 hover:bg-indigo-50/70'
+                     ? 'bg-slate-900 text-white shadow-md shadow-slate-900/15'
+                     : 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/70'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-cyan-300' : 'text-neutral-500'}`} />
+                 <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isActive ? 'text-cyan-300' : 'text-slate-400'}`} />
                 <span className="hidden sm:inline">{item.label}</span>
                 <span className="sm:hidden">{item.shortLabel}</span>
                 {item.badge !== undefined && (

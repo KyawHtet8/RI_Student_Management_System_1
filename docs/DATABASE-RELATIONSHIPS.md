@@ -14,9 +14,10 @@ students 1 ─────────< enrollments >──────── 1 
 ```
 
 Students and courses have a many-to-many relationship through `enrollments`.
-Enrollment stores semester, status, grade, and enrollment date. Attendance
-currently references student and course directly; the service verifies an
-active enrollment before creating attendance.
+Enrollment stores semester, status, grade, and enrollment date. Student status
+supports `Active`, `On Leave`, `Graduated`, `Suspended`, and `Archived`.
+Attendance currently references student and course directly; the service
+verifies an active enrollment before creating attendance.
 
 ## 2. Tables and responsibilities
 
@@ -146,26 +147,29 @@ Load enrollment → decrement course counter when applicable
 → delete enrollment → recalculate GPA
 ```
 
-### Deleting a student
+### Archiving a student
 
 ```text
-Delete student enrollments → delete student attendance → delete student
+Set student status to Archived → preserve enrollments, grades,
+attendance, notes, and transcript history
 ```
 
-This ordering is required because foreign keys prevent deleting a referenced
-student first. Soft deletion is preferable for production academic history.
+The API keeps the existing delete route for client compatibility, but its
+business meaning is archive. Archived students remain visible through the
+status filter and cannot start new course enrollments.
 
 ## 5. GPA relationship
 
-GPA is derived from enrollment grades and course credits:
+GPA is derived from completed enrollment grades and course credits:
 
 ```text
 GPA = Σ(grade points × course credits) / Σ(graded course credits)
 ```
 
-`In Progress` and ungraded enrollments are excluded. `students.gpa` is a cached
-value for quick display and is recalculated by the backend after grade changes,
-enrollment deletion, and startup reconciliation.
+Only `Completed` enrollments with a final grade contribute to GPA. `In Progress`,
+`Dropped`, `Waitlisted`, and ungraded enrollments are excluded. `students.gpa`
+is a cached value for quick display and is recalculated by the backend after
+grade changes, enrollment changes, archive operations, and startup reconciliation.
 
 ## 6. Identifier lengths
 

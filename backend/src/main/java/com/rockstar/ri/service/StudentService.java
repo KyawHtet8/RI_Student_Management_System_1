@@ -20,7 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StudentService {
 
-    private static final Set<String> STUDENT_STATUSES = Set.of("Active", "On Leave", "Graduated", "Suspended");
+    private static final Set<String> STUDENT_STATUSES = Set.of("Active", "On Leave", "Graduated", "Suspended", "Archived");
 
     private final StudentRepository repository;
     private final EnrollmentService enrollmentService;
@@ -111,13 +111,13 @@ public class StudentService {
             throw new ResourceNotFoundException("Cannot delete: Student not found with ID: " + id);
         }
 
-        // Remove dependent records before deleting the parent student. The
-        // database foreign keys intentionally prevent a direct parent delete.
-        enrollmentService.getByStudent(id).forEach(enrollment ->
-                enrollmentService.deleteEnrollment(enrollment.getId()));
-        attendanceRecordRepository.deleteByStudentId(id);
-        log.warn("Deleted student with ID: {}", id);
-        repository.deleteById(id);
+        // Keep the student and all academic history. Deletion from the UI is
+        // an archive operation so transcripts and attendance remain auditable.
+        Student student = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot archive: Student not found with ID: " + id));
+        student.setStatus("Archived");
+        repository.save(student);
+        log.info("Archived student with ID: {}", id);
     }
 
     // ၆။ Frontend Batch Selection အတွက် (အုပ်စုလိုက် Status ပြောင်းခြင်း)

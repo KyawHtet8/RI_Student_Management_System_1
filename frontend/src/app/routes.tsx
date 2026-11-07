@@ -104,14 +104,14 @@ export const AppRoutes: React.FC = () => {
   return (
     <div className="app-shell min-h-screen bg-neutral-100/60 text-neutral-900 flex flex-col font-sans antialiased">
       {/* Top Banner indicating architecture status */}
-      <div className="bg-[#171b2d] text-neutral-300 text-xs px-4 py-1.5 flex flex-wrap items-center justify-between border-b border-indigo-900/40">
+      <div className="bg-slate-950 text-slate-300 text-[11px] px-4 py-1.5 flex flex-wrap items-center justify-between border-b border-slate-800">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 font-medium">
             <Radio className={`w-3.5 h-3.5 ${serverConnected ? 'text-cyan-300 animate-pulse' : 'text-amber-300'}`} />
-            {serverConnected ? 'Spring Boot REST Connected' : 'Modular Monolith Architecture Ready'}
+            {serverConnected ? 'System online · API connected' : 'System ready · Offline mode'}
           </span>
           <span className="text-neutral-500">•</span>
-          <span className="text-neutral-400 hidden sm:inline">Feature-Driven Domain Layer (Students, Courses, Attendance, Analytics)</span>
+           <span className="text-slate-500 hidden sm:inline">Student records · Courses · Attendance · Analytics</span>
         </div>
         <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-400">
           <span className="hidden sm:inline">API Endpoint: <span className="text-cyan-300">/api/v1/*</span></span>
@@ -139,16 +139,17 @@ export const AppRoutes: React.FC = () => {
         }}
       />
 
-      {/* Primary Navigation Tabs */}
-      <Navigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        studentCount={students.length}
-        courseCount={courses.length}
-      />
+      <div className="flex flex-1 min-w-0 items-stretch">
+        {/* Primary navigation becomes a persistent sidebar on desktop. */}
+        <Navigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          studentCount={students.length}
+          courseCount={courses.length}
+        />
 
-      {/* View Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
+        {/* View Content Area */}
+        <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
         <AnimatePresence mode="wait">
           {activeTab === 'students' && (
             <motion.div
@@ -276,7 +277,8 @@ export const AppRoutes: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+        </main>
+      </div>
 
       {/* Enroll/Edit Student Modal Dialog */}
       <StudentModal
